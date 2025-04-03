@@ -3,8 +3,34 @@
 exports[`The ContentAudit stack matches the snapshot 1`] = `
 {
   "Metadata": {
-    "gu:cdk:constructs": [],
+    "gu:cdk:constructs": [
+      "GuParameter",
+      "GuParameter",
+    ],
     "gu:cdk:version": "TEST",
+  },
+  "Outputs": {
+    "OutputRoleArn": {
+      "Description": "Role that allows Github Actions to push updates to ECR and access the embedding models",
+      "Value": {
+        "Fn::GetAtt": [
+          "EmbeddingsLambdaRole66773000",
+          "Arn",
+        ],
+      },
+    },
+  },
+  "Parameters": {
+    "PrivateSubnetsParam": {
+      "Default": "/account/vpc/primary/subnets/private",
+      "Description": "Private subnets of the deployment VPC",
+      "Type": "AWS::SSM::Parameter::Value<List<String>>",
+    },
+    "VpcParam": {
+      "Default": "/account/vpc/primary/id",
+      "Description": "Main account VPC",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
   },
   "Resources": {
     "DockerTutorialFunction68122318": {
@@ -12,6 +38,9 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "DockerTutorialFunctionServiceRole53879D76",
       ],
       "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
         "Code": {
           "ImageUri": {
             "Fn::Join": [
@@ -25,7 +54,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
                         ":",
                         {
                           "Fn::GetAtt": [
-                            "contentauditecrrepo62BE8E90",
+                            "EmbeddingsLambda12176409",
                             "Arn",
                           ],
                         },
@@ -42,7 +71,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
                         ":",
                         {
                           "Fn::GetAtt": [
-                            "contentauditecrrepo62BE8E90",
+                            "EmbeddingsLambda12176409",
                             "Arn",
                           ],
                         },
@@ -56,7 +85,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
                 },
                 "/",
                 {
-                  "Ref": "contentauditecrrepo62BE8E90",
+                  "Ref": "EmbeddingsLambda12176409",
                 },
                 ":latest",
               ],
@@ -91,8 +120,55 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           },
         ],
         "Timeout": 60,
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Fn::GetAtt": [
+                "DockerTutorialFunctionSecurityGroup96DF4A92",
+                "GroupId",
+              ],
+            },
+          ],
+          "SubnetIds": {
+            "Ref": "PrivateSubnetsParam",
+          },
+        },
       },
       "Type": "AWS::Lambda::Function",
+    },
+    "DockerTutorialFunctionSecurityGroup96DF4A92": {
+      "Properties": {
+        "GroupDescription": "Automatic security group for Lambda Function ContentAuditDockerTutorialFunction256A19FD",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "VpcId": {
+          "Ref": "VpcParam",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
     },
     "DockerTutorialFunctionServiceRole53879D76": {
       "Properties": {
@@ -121,6 +197,18 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
               ],
             ],
           },
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
+              ],
+            ],
+          },
         ],
         "Tags": [
           {
@@ -143,12 +231,46 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::IAM::Role",
     },
-    "contentauditecrrepo62BE8E90": {
+    "EmbeddingsLambda12176409": {
       "DeletionPolicy": "Retain",
       "Properties": {
+        "EncryptionConfiguration": {
+          "EncryptionType": "KMS",
+          "KmsKey": {
+            "Fn::GetAtt": [
+              "EmbeddingsLambdaKeyEE9067A6",
+              "Arn",
+            ],
+          },
+        },
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true,
+        },
+        "ImageTagMutability": "IMMUTABLE",
+        "LifecyclePolicy": {
+          "LifecyclePolicyText": "{"rules":[{"rulePriority":1,"description":"Limit the number of retained images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":100},"action":{"type":"expire"}}]}",
+        },
         "RepositoryName": "content-audit/playwright-runner",
         "RepositoryPolicyText": {
           "Statement": [
+            {
+              "Action": [
+                "ecr:BatchGetImage",
+                "ecr:DeleteRepositoryPolicy",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:GetRepositoryPolicy",
+                "ecr:SetRepositoryPolicy",
+              ],
+              "Condition": {
+                "StringLike": {
+                  "aws:sourceArn": "arn:aws:lambda:eu-west-1:undefined:function:*",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
             {
               "Action": [
                 "ecr:BatchCheckLayerAvailability",
@@ -184,6 +306,160 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::ECR::Repository",
       "UpdateReplacePolicy": "Retain",
+    },
+    "EmbeddingsLambdaKeyEE9067A6": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "KeyPolicy": {
+          "Statement": [
+            {
+              "Action": "kms:*",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":iam::",
+                      {
+                        "Ref": "AWS::AccountId",
+                      },
+                      ":root",
+                    ],
+                  ],
+                },
+              },
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::KMS::Key",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "EmbeddingsLambdaRole66773000": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                },
+                "StringLike": {
+                  "token.actions.githubusercontent.com:sub": "repo:guardian/recipe-search-backend:*",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "token.actions.githubusercontent.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage",
+                    "ecr:CompleteLayerUpload",
+                    "ecr:DescribeImages",
+                    "ecr:DescribeRepositories",
+                    "ecr:ListTagsForResource",
+                    "ecr:UploadLayerPart",
+                    "ecr:ListImages",
+                    "ecr:InitiateLayerUpload",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:PutImage",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "EmbeddingsLambda12176409",
+                        "Arn",
+                      ],
+                    },
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          {
+                            "Fn::GetAtt": [
+                              "EmbeddingsLambda12176409",
+                              "Arn",
+                            ],
+                          },
+                          "/*",
+                        ],
+                      ],
+                    },
+                  ],
+                },
+                {
+                  "Action": [
+                    "ecr:DescribeRegistry",
+                    "ecr:DescribePullThroughCacheRules",
+                    "ecr:GetAuthorizationToken",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*",
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": "ecr-push",
+          },
+        ],
+        "RoleName": "recipe-search-backend-GHA",
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
     },
   },
 }
