@@ -6,5 +6,185 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     "gu:cdk:constructs": [],
     "gu:cdk:version": "TEST",
   },
+  "Resources": {
+    "DockerTutorialFunction68122318": {
+      "DependsOn": [
+        "DockerTutorialFunctionServiceRole53879D76",
+      ],
+      "Properties": {
+        "Code": {
+          "ImageUri": {
+            "Fn::Join": [
+              "",
+              [
+                {
+                  "Fn::Select": [
+                    4,
+                    {
+                      "Fn::Split": [
+                        ":",
+                        {
+                          "Fn::GetAtt": [
+                            "contentauditecrrepo62BE8E90",
+                            "Arn",
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                ".dkr.ecr.",
+                {
+                  "Fn::Select": [
+                    3,
+                    {
+                      "Fn::Split": [
+                        ":",
+                        {
+                          "Fn::GetAtt": [
+                            "contentauditecrrepo62BE8E90",
+                            "Arn",
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                ".",
+                {
+                  "Ref": "AWS::URLSuffix",
+                },
+                "/",
+                {
+                  "Ref": "contentauditecrrepo62BE8E90",
+                },
+                ":latest",
+              ],
+            ],
+          },
+        },
+        "FunctionName": "playwright-runner",
+        "MemorySize": 4096,
+        "PackageType": "Image",
+        "Role": {
+          "Fn::GetAtt": [
+            "DockerTutorialFunctionServiceRole53879D76",
+            "Arn",
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "Timeout": 60,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "DockerTutorialFunctionServiceRole53879D76": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "contentauditecrrepo62BE8E90": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RepositoryName": "content-audit/playwright-runner",
+        "RepositoryPolicyText": {
+          "Statement": [
+            {
+              "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::ECR::Repository",
+      "UpdateReplacePolicy": "Retain",
+    },
+  },
 }
 `;
