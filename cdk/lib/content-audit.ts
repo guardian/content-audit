@@ -1,19 +1,16 @@
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
 import { GuStack } from '@guardian/cdk/lib/constructs/core';
+import {
+	GuGithubActionsRole,
+	GuPolicy,
+} from '@guardian/cdk/lib/constructs/iam';
 import { CfnOutput, type App } from 'aws-cdk-lib';
 import {
 	Repository,
 	RepositoryEncryption,
 	TagMutability,
 } from 'aws-cdk-lib/aws-ecr';
-import {
-	Effect,
-	FederatedPrincipal,
-	PolicyDocument,
-	PolicyStatement,
-	Role,
-	ServicePrincipal,
-} from 'aws-cdk-lib/aws-iam';
+import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Key } from 'aws-cdk-lib/aws-kms';
 // import {
 // 	Architecture,
@@ -47,7 +44,7 @@ export class ContentAudit extends GuStack {
 		// 	availabilityZones: ['eu-west-1a', 'eu-west-1b', 'eu-west-1c'],
 		// });
 
-		const encryptionKey = new Key(this, 'EmbeddingsLambdaKey');
+		const encryptionKey = new Key(this, 'PlaywrightRunnerKey');
 
 		const ecrRepo = new Repository(this, 'PlaywrightRunnerRepository', {
 			repositoryName: 'content-audit/playwright-runner',
@@ -82,23 +79,13 @@ export class ContentAudit extends GuStack {
 			}),
 		);
 
-		const ghaRole = new Role(this, 'EmbeddingsLambdaRole', {
-			roleName: `recipe-search-backend-GHA`,
-			assumedBy: new FederatedPrincipal(
-				'token.actions.githubusercontent.com',
-				{
-					StringEquals: {
-						'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-					},
-					StringLike: {
-						'token.actions.githubusercontent.com:sub':
-							'repo:guardian/recipe-search-backend:*',
-					},
-				},
-				'sts:AssumeRoleWithWebIdentity',
-			),
-			inlinePolicies: {
-				'ecr-push': new PolicyDocument({
+		const ghaRole = new GuGithubActionsRole(this, {
+			condition: {
+				githubOrganisation: 'guardian',
+				repositories: 'content-audit:*',
+			},
+			policies: [
+				new GuPolicy(this, 'PushUpdatesPolicy', {
 					statements: [
 						//Allows the role to push updates to the repo
 						new PolicyStatement({
@@ -130,7 +117,7 @@ export class ContentAudit extends GuStack {
 						}),
 					],
 				}),
-			},
+			],
 		});
 
 		// new DockerImageFunction(this, 'PlaywrightRunnerLambda', {
@@ -147,8 +134,7 @@ export class ContentAudit extends GuStack {
 
 		new CfnOutput(this, 'OutputRoleArn', {
 			value: ghaRole.roleArn,
-			description:
-				'Role that allows Github Actions to push updates to ECR and access the embedding models',
+			description: 'Role that allows Github Actions to push updates to ECR',
 		});
 	}
 }
