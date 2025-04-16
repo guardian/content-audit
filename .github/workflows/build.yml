@@ -15,6 +15,12 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          aws-region: eu-west-1
+
       - uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
@@ -25,15 +31,20 @@ jobs:
       - run: npm test
         working-directory: cdk
       - run: npm run synth
+        working-directory: cdk
         env:
           BUILD_NUMBER: ${{ github.run_number }}
-        working-directory: cdk
-      - name: Store the built artifacts
-        uses: actions/upload-artifact@v4
+
+      - name: Upload to Riff-Raff
+        uses: guardian/actions-riff-raff@v2
         with:
-          name: cdk.out
-          path: cdk/cdk.out
-          retention-days: 5
+          projectName: Content Platforms::content-audit
+          configPath: ./cdk/cdk.out/riff-raff.yaml
+          contentDirectories: |
+            cdk.out:
+              - ./cdk/cdk.out/ContentAudit-euwest-1-CODE.template.json
+              - ./cdk/cdk.out/ContentAudit-euwest-1-PROD.template.json
+
   build-playwright-image:
     runs-on: ubuntu-latest
     steps:
