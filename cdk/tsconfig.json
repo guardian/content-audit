@@ -1,8 +1,10 @@
 {
   "extends": "@guardian/tsconfig/tsconfig.json",
   "compilerOptions": {
-    "module": "ESNext"
+    "module": "CommonJS",
+    "moduleResolution": "node"
   },
+  "bundler": "",
   "include": ["lib/**/*", "bin/**/*"],
   "exclude": [
     "node_modules",
