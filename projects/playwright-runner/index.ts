@@ -1,7 +1,16 @@
+import { APIGatewayProxyEvent, Handler } from "aws-lambda";
 import { chromium, devices } from "playwright";
+import { AuditPageOptionsSchema } from "./model.js";
 
-export const handler = async () => {
-  console.log("Handler running");
+export const handler: Handler<APIGatewayProxyEvent> = async (event) => {
+  console.log("`playwright-runner` started");
+  console.log(`Event payload received: ${event.body}`);
+
+  const eventJson = JSON.parse(event.body ?? "");
+
+  const { url } = AuditPageOptionsSchema.parse(eventJson);
+
+  console.log(`Running page at ${url}`);
 
   const args = ["--single-process"];
   const assetDir = "/tmp";
@@ -48,9 +57,7 @@ export const handler = async () => {
     });
   });
 
-  await page.goto(
-    "https://www.theguardian.com/environment/ng-interactive/2025/mar/12/as-countries-scramble-for-minerals-the-seabed-beckons-will-mining-it-be-a-disaster-visual-explainer"
-  );
+  await page.goto(url);
 
   const waitForPageLoad = async (timeoutMs = 10000) =>
     await page.evaluate(async (timeoutMs) => {
