@@ -87,7 +87,7 @@ export class ContentAudit extends GuStack {
 			policies: [
 				new GuPolicy(this, 'PushUpdatesPolicy', {
 					statements: [
-						//Allows the role to push updates to the repo
+						// Allows the role to push updates to the repo
 						new PolicyStatement({
 							effect: Effect.ALLOW,
 							actions: [
@@ -105,7 +105,7 @@ export class ContentAudit extends GuStack {
 							],
 							resources: [ecrRepo.repositoryArn, ecrRepo.repositoryArn + '/*'],
 						}),
-						//Allows the role to obtain login tokens for ECR as a whole
+						// Allows the role to obtain login tokens for ECR as a whole
 						new PolicyStatement({
 							effect: Effect.ALLOW,
 							actions: [
