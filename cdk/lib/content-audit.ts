@@ -123,7 +123,7 @@ export class ContentAudit extends GuStack {
 			],
 		});
 
-		const tagOrDigest = process.env["BUILD_NUMBER"] ?? "DEV";
+		const tagOrDigest = process.env['BUILD_NUMBER'] ?? 'DEV';
 
 		const playwrightRunnerFunction = new DockerImageFunction(
 			this,
