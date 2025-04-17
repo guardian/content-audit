@@ -46,7 +46,7 @@ jobs:
               - ./cdk/cdk.out/ContentAudit-euwest-1-PROD.template.json
 
   build-playwright-image:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       # Needed to interact with GitHub's OIDC Token endpoint to configure AWS credentials
       id-token: write
