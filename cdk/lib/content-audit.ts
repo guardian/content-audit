@@ -1,10 +1,12 @@
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
-import { GuStack } from '@guardian/cdk/lib/constructs/core';
+import { GuParameter, GuStack } from '@guardian/cdk/lib/constructs/core';
 import {
 	GuGithubActionsRole,
 	GuPolicy,
 } from '@guardian/cdk/lib/constructs/iam';
-import { CfnOutput, type App } from 'aws-cdk-lib';
+import { Duration, type App } from 'aws-cdk-lib';
+import { LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
+import { Subnet, Vpc } from 'aws-cdk-lib/aws-ec2';
 import {
 	Repository,
 	RepositoryEncryption,
@@ -12,37 +14,37 @@ import {
 } from 'aws-cdk-lib/aws-ecr';
 import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Key } from 'aws-cdk-lib/aws-kms';
-// import {
-// 	Architecture,
-// 	DockerImageCode,
-// 	DockerImageFunction,
-// } from 'aws-cdk-lib/aws-lambda';
+import {
+	Architecture,
+	DockerImageCode,
+	DockerImageFunction,
+} from 'aws-cdk-lib/aws-lambda';
 
 export class ContentAudit extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
 		super(scope, id, props);
 
-		// const vpcId = new GuParameter(this, 'VpcParam', {
-		// 	fromSSM: true,
-		// 	default: `/account/vpc/primary/id`,
-		// 	description: 'Main account VPC',
-		// });
+		const vpcId = new GuParameter(this, 'VpcParam', {
+			fromSSM: true,
+			default: `/account/vpc/primary/id`,
+			description: 'Main account VPC',
+		});
 
-		// const privateSubnetIds = new GuParameter(this, 'PrivateSubnetsParam', {
-		// 	fromSSM: true,
-		// 	type: 'List<String>',
-		// 	default: `/account/vpc/primary/subnets/private`,
-		// 	description: 'Private subnets of the deployment VPC',
-		// });
+		const privateSubnetIds = new GuParameter(this, 'PrivateSubnetsParam', {
+			fromSSM: true,
+			type: 'List<String>',
+			default: `/account/vpc/primary/subnets/private`,
+			description: 'Private subnets of the deployment VPC',
+		});
 
-		// const privateSubnets = privateSubnetIds.valueAsList.map((id, ctr) =>
-		// 	Subnet.fromSubnetId(this, `private${ctr}`, id),
-		// );
+		const privateSubnets = privateSubnetIds.valueAsList.map((id, ctr) =>
+			Subnet.fromSubnetId(this, `private${ctr}`, id),
+		);
 
-		// const vpc = Vpc.fromVpcAttributes(this, 'Vpc', {
-		// 	vpcId: vpcId.valueAsString,
-		// 	availabilityZones: ['eu-west-1a', 'eu-west-1b', 'eu-west-1c'],
-		// });
+		const vpc = Vpc.fromVpcAttributes(this, 'Vpc', {
+			vpcId: vpcId.valueAsString,
+			availabilityZones: ['eu-west-1a', 'eu-west-1b', 'eu-west-1c'],
+		});
 
 		const encryptionKey = new Key(this, 'PlaywrightRunnerKey');
 
@@ -79,7 +81,8 @@ export class ContentAudit extends GuStack {
 			}),
 		);
 
-		const ghaRole = new GuGithubActionsRole(this, {
+		// Allow GHA to push new images to ECR
+		new GuGithubActionsRole(this, {
 			condition: {
 				githubOrganisation: 'guardian',
 				repositories: 'content-audit:*',
@@ -120,21 +123,27 @@ export class ContentAudit extends GuStack {
 			],
 		});
 
-		// new DockerImageFunction(this, 'PlaywrightRunnerLambda', {
-		// 	code: DockerImageCode.fromEcr(ecrRepo),
-		// 	functionName: 'playwright-runner',
-		// 	memorySize: 4096,
-		// 	timeout: Duration.seconds(60),
-		// 	architecture: Architecture.ARM_64,
-		// 	vpc,
-		// 	vpcSubnets: {
-		// 		subnets: privateSubnets,
-		// 	},
-		// });
+		const tagOrDigest = process.env["BUILD_NUMBER"] ?? "DEV";
 
-		new CfnOutput(this, 'OutputRoleArn', {
-			value: ghaRole.roleArn,
-			description: 'Role that allows Github Actions to push updates to ECR',
+		const playwrightRunnerFunction = new DockerImageFunction(
+			this,
+			'PlaywrightRunnerLambda',
+			{
+				code: DockerImageCode.fromEcr(ecrRepo, { tagOrDigest }),
+				functionName: 'playwright-runner',
+				memorySize: 4096,
+				timeout: Duration.seconds(60),
+				architecture: Architecture.ARM_64,
+				vpc,
+				vpcSubnets: {
+					subnets: privateSubnets,
+				},
+			},
+		);
+
+		new LambdaRestApi(this, 'PlaywrightRunnerApi', {
+			handler: playwrightRunnerFunction,
+			proxy: true,
 		});
 	}
 }
