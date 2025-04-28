@@ -1,0 +1,103 @@
+name: Build
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  create-and-push-playwright-runner-image:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      # Needed to interact with GitHub's OIDC Token endpoint to configure AWS credentials
+      id-token: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: eu-west-1
+        role-to-assume: ${{secrets.GU_ECR_ROLE_ARN}}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to ECR
+      uses: aws-actions/amazon-ecr-login@v2
+      id: ecr-login
+      with:
+        mask-password: "true"
+      continue-on-error: true
+
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      env:
+        REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        IMAGE_TAG: ${{ github.run_number }}
+      with:
+        context: projects/playwright-runner
+        platforms: linux/arm64
+        push: true
+        tags: ${{ env.REGISTRY }}/content-audit/playwright-runner:${{ env.IMAGE_TAG }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        provenance: false
+
+  build-cdk:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      issues: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: cdk/package-lock.json
+      - run: npm ci
+        working-directory: cdk
+      - run: npm test
+        working-directory: cdk
+      - run: npm run synth
+        working-directory: cdk
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+      - name: Store the built artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdk.out
+          path: cdk/cdk.out
+          retention-days: 5
+
+  upload-to-riffraff:
+    needs:
+      - create-and-push-playwright-runner-image
+      - build-cdk
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Upload to Riff-Raff
+        uses: guardian/actions-riff-raff@v4
+        with:
+          projectName: Content Platforms::content-audit
+          configPath: artifacts/cdk.out/riff-raff.yaml
+          roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          contentDirectories: |
+            cdk.out:
+              - artifacts/cdk.out/ContentAudit-euwest-1-CODE.template.json
+              - artifacts/cdk.out/ContentAudit-euwest-1-PROD.template.json
