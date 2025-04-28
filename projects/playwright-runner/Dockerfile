@@ -41,4 +41,4 @@ RUN chmod 755 /entrypoint.sh
 ENTRYPOINT [ "/entrypoint.sh" ]
 
 # Set function handler
-CMD ["index.handler"]
+CMD ["src/index.handler"]
