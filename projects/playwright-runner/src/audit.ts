@@ -78,10 +78,10 @@ export const auditPage = async (url: string) => {
 
   await new Promise((res) => setTimeout(res, 1000));
 
-  const takePageScreenshot = async (pageNo: number) => {
+  const takePageScreenshot = (pageNo: number): Promise<Buffer> => {
     const path = `${assetDir}/page-${pageNo}.jpg`;
     console.log(`Taking screenshot for ${path}`);
-    await page.screenshot({ path, type: "jpeg", quality: 50 });
+    return page.screenshot({ path, type: "jpeg", quality: 50 });
   };
 
   const maxScrollHeight = await page.evaluate(() => document.body.scrollHeight);

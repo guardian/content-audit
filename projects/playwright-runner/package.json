@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "run": "node --experimental-strip-types ./src/index.ts",
-    "test": "node --experimental-strip-types *.spec.ts --test"
+    "test": "node --experimental-strip-types **/*.spec.ts --test"
   },
   "keywords": [],
   "author": "",
