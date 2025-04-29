@@ -1,12 +1,14 @@
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
 import { GuParameter, GuStack } from '@guardian/cdk/lib/constructs/core';
+import { GuSecurityGroup, GuVpc } from '@guardian/cdk/lib/constructs/ec2';
 import {
 	GuGithubActionsRole,
 	GuPolicy,
 } from '@guardian/cdk/lib/constructs/iam';
-import { Duration, type App } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, type App } from 'aws-cdk-lib';
 import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
-import { Subnet, Vpc } from 'aws-cdk-lib/aws-ec2';
+import { GuDatabaseInstance } from "@guardian/cdk/lib/constructs/rds";
+import { Port, Subnet, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
 import {
 	Repository,
 	RepositoryEncryption,
@@ -19,6 +21,7 @@ import {
 	DockerImageCode,
 	DockerImageFunction,
 } from 'aws-cdk-lib/aws-lambda';
+import { Credentials, DatabaseInstanceEngine, PostgresEngineVersion, StorageType, SubnetGroup } from 'aws-cdk-lib/aws-rds';
 
 export class ContentAudit extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
@@ -155,6 +158,55 @@ export class ContentAudit extends GuStack {
 
 		usagePlan.addApiStage({
 			stage: api.deploymentStage,
+		});
+
+		const dbAppName = 'content-audit-db';
+		const dbPort = 5432;
+
+		const dbAccessSecurityGroup = new GuSecurityGroup(this, 'DBSecurityGroup', {
+			app: dbAppName,
+			description: 'Allow connection from playwright-runner lambda to DB',
+			vpc,
+			allowAllOutbound: false,
+		});
+
+		dbAccessSecurityGroup.connections.allowFrom(
+			playwrightRunnerFunction,
+			Port.tcp(dbPort),
+			'Allow connection from playwright-runner lambda to DB',
+		);
+
+		new GuDatabaseInstance(this, 'RuleManagerRDS', {
+			app: dbAppName,
+			vpc,
+			vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
+			allocatedStorage: 50,
+			allowMajorVersionUpgrade: false,
+			autoMinorVersionUpgrade: true,
+			deleteAutomatedBackups: false,
+			engine: DatabaseInstanceEngine.postgres({
+				version: PostgresEngineVersion.VER_17,
+			}),
+			instanceType: 'db.t4g.micro',
+			instanceIdentifier: `typerighter-rule-manager-store-${this.stage}`,
+			subnetGroup: new SubnetGroup(this, 'DBSubnetGroup', {
+				vpc,
+				vpcSubnets: {
+					subnets: GuVpc.subnetsFromParameter(this),
+				},
+				description: 'Subnet for typerighter rule-manager database',
+			}),
+			credentials: Credentials.fromGeneratedSecret("root", {
+				secretName: `${dbAppName}-master-credentials`
+			}),
+			multiAz: this.stage === 'PROD',
+			port: dbPort,
+			preferredMaintenanceWindow: 'Mon:06:30-Mon:07:00',
+			securityGroups: [dbAccessSecurityGroup],
+			storageEncrypted: true,
+			storageType: StorageType.GP2,
+			removalPolicy: RemovalPolicy.SNAPSHOT,
+			devXBackups: { enabled: true },
 		});
 	}
 }
