@@ -113,6 +113,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     },
     "PlaywrightRunnerApi62D41F72": {
       "Properties": {
+        "ApiKeySourceType": "HEADER",
         "Name": "PlaywrightRunnerApi",
         "Tags": [
           {
@@ -137,6 +138,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     },
     "PlaywrightRunnerApiANY1C25059F": {
       "Properties": {
+        "ApiKeyRequired": true,
         "AuthorizationType": "NONE",
         "HttpMethod": "ANY",
         "Integration": {
@@ -323,7 +325,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "Type": "AWS::IAM::Role",
       "UpdateReplacePolicy": "Retain",
     },
-    "PlaywrightRunnerApiDeployment4091482Ad8e3d6f13ed896a599b5e4aca3c32bdb": {
+    "PlaywrightRunnerApiDeployment4091482A50900073e66d6c2b57b0d76b75fb3584": {
       "DependsOn": [
         "PlaywrightRunnerApiproxyANY1EF90290",
         "PlaywrightRunnerApiproxy1CACB525",
@@ -343,7 +345,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       ],
       "Properties": {
         "DeploymentId": {
-          "Ref": "PlaywrightRunnerApiDeployment4091482Ad8e3d6f13ed896a599b5e4aca3c32bdb",
+          "Ref": "PlaywrightRunnerApiDeployment4091482A50900073e66d6c2b57b0d76b75fb3584",
         },
         "RestApiId": {
           "Ref": "PlaywrightRunnerApi62D41F72",
@@ -370,6 +372,41 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::ApiGateway::Stage",
     },
+    "PlaywrightRunnerApiPlaywrightRunnerUsagePlan0CE59C49": {
+      "Properties": {
+        "ApiStages": [
+          {
+            "ApiId": {
+              "Ref": "PlaywrightRunnerApi62D41F72",
+            },
+            "Stage": {
+              "Ref": "PlaywrightRunnerApiDeploymentStageprodA441B43B",
+            },
+            "Throttle": {},
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "UsagePlanName": "PlaywrightRunnerUsagePlan",
+      },
+      "Type": "AWS::ApiGateway::UsagePlan",
+    },
     "PlaywrightRunnerApiproxy1CACB525": {
       "Properties": {
         "ParentId": {
@@ -387,6 +424,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     },
     "PlaywrightRunnerApiproxyANY1EF90290": {
       "Properties": {
+        "ApiKeyRequired": true,
         "AuthorizationType": "NONE",
         "HttpMethod": "ANY",
         "Integration": {
