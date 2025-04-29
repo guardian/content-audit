@@ -68,7 +68,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     },
   },
   "Resources": {
-    "ContentAuditRuleManagerRDSContentauditdbSecret407791823fdaad7efa858a3daf9490cf0a702aeb": {
+    "ContentAuditRuleManagerRDSUndefineddbSecretD71095643fdaad7efa858a3daf9490cf0a702aeb": {
       "DeletionPolicy": "Delete",
       "Properties": {
         "Description": {
@@ -88,11 +88,11 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           "PasswordLength": 30,
           "SecretStringTemplate": "{"username":"root"}",
         },
-        "Name": "content-audit-db-master-credentials",
+        "Name": "undefined-db-master-credentials",
         "Tags": [
           {
             "Key": "App",
-            "Value": "content-audit-db",
+            "Value": "undefined-db",
           },
           {
             "Key": "devx-backup-enabled",
@@ -119,7 +119,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
     },
-    "DBSecurityGroupContentauditdb76D74597": {
+    "DBSecurityGroupUndefineddbA6F2E79D": {
       "Properties": {
         "GroupDescription": "Allow connection from playwright-runner lambda to DB",
         "SecurityGroupEgress": [
@@ -134,7 +134,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "Tags": [
           {
             "Key": "App",
-            "Value": "content-audit-db",
+            "Value": "undefined-db",
           },
           {
             "Key": "gu:cdk:version",
@@ -159,13 +159,13 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::EC2::SecurityGroup",
     },
-    "DBSecurityGroupContentauditdbfromContentAuditPlaywrightRunnerLambdaSecurityGroup1F8D33FF543223DC64E2": {
+    "DBSecurityGroupUndefineddbfromContentAuditPlaywrightRunnerLambdaSecurityGroup1F8D33FF54327258EF98": {
       "Properties": {
         "Description": "Allow connection from playwright-runner lambda to DB",
         "FromPort": 5432,
         "GroupId": {
           "Fn::GetAtt": [
-            "DBSecurityGroupContentauditdb76D74597",
+            "DBSecurityGroupUndefineddbA6F2E79D",
             "GroupId",
           ],
         },
@@ -800,6 +800,22 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
             ],
           },
         },
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": {
+              "Fn::Join": [
+                "",
+                [
+                  "postgresql://root:{{resolve:secretsmanager:",
+                  {
+                    "Ref": "RuleManagerRDSUndefineddbSecretAttachment3FB64095",
+                  },
+                  ":SecretString:::}}@[object Object]/undefined?schema=public",
+                ],
+              ],
+            },
+          },
+        },
         "FunctionName": "playwright-runner",
         "MemorySize": 4096,
         "PackageType": "Image",
@@ -958,7 +974,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "LifecyclePolicy": {
           "LifecyclePolicyText": "{"rules":[{"rulePriority":1,"description":"Limit the number of retained images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":100},"action":{"type":"expire"}}]}",
         },
-        "RepositoryName": "content-audit/playwright-runner",
+        "RepositoryName": "undefined/playwright-runner",
         "RepositoryPolicyText": {
           "Statement": [
             {
@@ -1078,7 +1094,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::IAM::Policy",
     },
-    "RuleManagerRDSContentauditdb35E539E1": {
+    "RuleManagerRDSUndefineddb6A502FE0": {
       "DeletionPolicy": "Snapshot",
       "Properties": {
         "AllocatedStorage": "50",
@@ -1100,7 +1116,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
             [
               "{{resolve:secretsmanager:",
               {
-                "Ref": "ContentAuditRuleManagerRDSContentauditdbSecret407791823fdaad7efa858a3daf9490cf0a702aeb",
+                "Ref": "ContentAuditRuleManagerRDSUndefineddbSecretD71095643fdaad7efa858a3daf9490cf0a702aeb",
               },
               ":SecretString:password::}}",
             ],
@@ -1116,7 +1132,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "Tags": [
           {
             "Key": "App",
-            "Value": "content-audit-db",
+            "Value": "undefined-db",
           },
           {
             "Key": "devx-backup-enabled",
@@ -1142,7 +1158,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "VPCSecurityGroups": [
           {
             "Fn::GetAtt": [
-              "DBSecurityGroupContentauditdb76D74597",
+              "DBSecurityGroupUndefineddbA6F2E79D",
               "GroupId",
             ],
           },
@@ -1151,13 +1167,13 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "Type": "AWS::RDS::DBInstance",
       "UpdateReplacePolicy": "Snapshot",
     },
-    "RuleManagerRDSContentauditdbSecretAttachment9F9EB4CB": {
+    "RuleManagerRDSUndefineddbSecretAttachment3FB64095": {
       "Properties": {
         "SecretId": {
-          "Ref": "ContentAuditRuleManagerRDSContentauditdbSecret407791823fdaad7efa858a3daf9490cf0a702aeb",
+          "Ref": "ContentAuditRuleManagerRDSUndefineddbSecretD71095643fdaad7efa858a3daf9490cf0a702aeb",
         },
         "TargetId": {
-          "Ref": "RuleManagerRDSContentauditdb35E539E1",
+          "Ref": "RuleManagerRDSUndefineddb6A502FE0",
         },
         "TargetType": "AWS::RDS::DBInstance",
       },
