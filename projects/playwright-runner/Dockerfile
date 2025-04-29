@@ -1,6 +1,6 @@
 ARG FUNCTION_DIR="/function"
 
-FROM mcr.microsoft.com/playwright:v1.51.1-noble as build-image
+FROM mcr.microsoft.com/playwright:v1.51.1-noble AS build-image
 
 ARG FUNCTION_DIR
 
