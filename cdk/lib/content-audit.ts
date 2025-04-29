@@ -7,7 +7,7 @@ import {
 } from '@guardian/cdk/lib/constructs/iam';
 import { Duration, RemovalPolicy, type App } from 'aws-cdk-lib';
 import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
-import { GuDatabaseInstance } from "@guardian/cdk/lib/constructs/rds";
+import { GuDatabaseInstance } from '@guardian/cdk/lib/constructs/rds';
 import { Port, Subnet, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
 import {
 	Repository,
@@ -21,7 +21,13 @@ import {
 	DockerImageCode,
 	DockerImageFunction,
 } from 'aws-cdk-lib/aws-lambda';
-import { Credentials, DatabaseInstanceEngine, PostgresEngineVersion, StorageType, SubnetGroup } from 'aws-cdk-lib/aws-rds';
+import {
+	Credentials,
+	DatabaseInstanceEngine,
+	PostgresEngineVersion,
+	StorageType,
+	SubnetGroup,
+} from 'aws-cdk-lib/aws-rds';
 
 export class ContentAudit extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
@@ -52,7 +58,7 @@ export class ContentAudit extends GuStack {
 		const encryptionKey = new Key(this, 'PlaywrightRunnerKey');
 
 		const ecrRepo = new Repository(this, 'PlaywrightRunnerRepository', {
-			repositoryName: 'content-audit/playwright-runner',
+			repositoryName: `${this.app}/playwright-runner`,
 			encryption: RepositoryEncryption.KMS,
 			encryptionKey,
 			imageTagMutability: TagMutability.IMMUTABLE,
@@ -128,40 +134,9 @@ export class ContentAudit extends GuStack {
 
 		const tagOrDigest = process.env['BUILD_NUMBER'] ?? 'DEV';
 
-		const playwrightRunnerFunction = new DockerImageFunction(
-			this,
-			'PlaywrightRunnerLambda',
-			{
-				code: DockerImageCode.fromEcr(ecrRepo, { tagOrDigest }),
-				functionName: 'playwright-runner',
-				memorySize: 4096,
-				timeout: Duration.seconds(60),
-				architecture: Architecture.ARM_64,
-				vpc,
-				vpcSubnets: {
-					subnets: privateSubnets,
-				},
-			},
-		);
-
-		const api = new LambdaRestApi(this, 'PlaywrightRunnerApi', {
-			handler: playwrightRunnerFunction,
-			apiKeySourceType: ApiKeySourceType.HEADER,
-			defaultMethodOptions: {
-				apiKeyRequired: true,
-			},
-		});
-
-		const usagePlan = api.addUsagePlan('PlaywrightRunnerUsagePlan', {
-			name: 'PlaywrightRunnerUsagePlan',
-		});
-
-		usagePlan.addApiStage({
-			stage: api.deploymentStage,
-		});
-
-		const dbAppName = 'content-audit-db';
+		const dbAppName = `${this.app}-db`;
 		const dbPort = 5432;
+		const dbUser = 'root';
 
 		const dbAccessSecurityGroup = new GuSecurityGroup(this, 'DBSecurityGroup', {
 			app: dbAppName,
@@ -170,14 +145,9 @@ export class ContentAudit extends GuStack {
 			allowAllOutbound: false,
 		});
 
-		dbAccessSecurityGroup.connections.allowFrom(
-			playwrightRunnerFunction,
-			Port.tcp(dbPort),
-			'Allow connection from playwright-runner lambda to DB',
-		);
-
-		new GuDatabaseInstance(this, 'RuleManagerRDS', {
+		const db = new GuDatabaseInstance(this, 'RuleManagerRDS', {
 			app: dbAppName,
+			databaseName: this.app,
 			vpc,
 			vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
 			allocatedStorage: 50,
@@ -196,8 +166,8 @@ export class ContentAudit extends GuStack {
 				},
 				description: 'Subnet for typerighter rule-manager database',
 			}),
-			credentials: Credentials.fromGeneratedSecret("root", {
-				secretName: `${dbAppName}-master-credentials`
+			credentials: Credentials.fromGeneratedSecret(dbUser, {
+				secretName: `${dbAppName}-master-credentials`,
 			}),
 			multiAz: this.stage === 'PROD',
 			port: dbPort,
@@ -207,6 +177,47 @@ export class ContentAudit extends GuStack {
 			storageType: StorageType.GP2,
 			removalPolicy: RemovalPolicy.SNAPSHOT,
 			devXBackups: { enabled: true },
+		});
+
+		const playwrightRunnerFunction = new DockerImageFunction(
+			this,
+			'PlaywrightRunnerLambda',
+			{
+				code: DockerImageCode.fromEcr(ecrRepo, { tagOrDigest }),
+				functionName: 'playwright-runner',
+				memorySize: 4096,
+				timeout: Duration.seconds(60),
+				architecture: Architecture.ARM_64,
+				vpc,
+				vpcSubnets: {
+					subnets: privateSubnets,
+				},
+				environment: {
+					DATABASE_URL: `postgresql://${dbUser}:${db.secret?.secretValue}@${db.instanceEndpoint}/${this.app}?schema=public`
+				}
+			},
+		);
+
+		dbAccessSecurityGroup.connections.allowFrom(
+			playwrightRunnerFunction,
+			Port.tcp(dbPort),
+			'Allow connection from playwright-runner lambda to DB',
+		);
+
+		const api = new LambdaRestApi(this, 'PlaywrightRunnerApi', {
+			handler: playwrightRunnerFunction,
+			apiKeySourceType: ApiKeySourceType.HEADER,
+			defaultMethodOptions: {
+				apiKeyRequired: true,
+			},
+		});
+
+		const usagePlan = api.addUsagePlan('PlaywrightRunnerUsagePlan', {
+			name: 'PlaywrightRunnerUsagePlan',
+		});
+
+		usagePlan.addApiStage({
+			stage: api.deploymentStage,
 		});
 	}
 }
