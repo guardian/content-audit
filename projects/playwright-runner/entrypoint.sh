@@ -1,4 +1,8 @@
 #!/bin/sh
+
+export NODE_OPTIONS="--experimental-strip-types --experimental-transform-types"
+
+printf "Entrypoint with handler: $1"
 if [ -z "${AWS_LAMBDA_RUNTIME_API}" ]; then
   NODE_VERSION=$(node -v)
   printf "Running in emulator on node $NODE_VERSION\n"

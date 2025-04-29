@@ -29,7 +29,11 @@ RUN npm install
 RUN npm install aws-lambda-ric
 RUN cd node_modules/aws-lambda-ric && npm run update-deps && npm run preinstall && npm run postinstall
 
-COPY . ${FUNCTION_DIR}
+# Copy other files into the function root directory
+COPY ./src ${FUNCTION_DIR}
+COPY ./tsconfig.json ${FUNCTION_DIR}
+COPY ./entrypoint.sh ${FUNCTION_DIR}
+COPY ./playwright.config.ts ${FUNCTION_DIR}
 
 RUN ./node_modules/.bin/tsc
 
@@ -38,7 +42,4 @@ ADD https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest
 RUN chmod 755 /usr/local/bin/aws-lambda-rie
 COPY entrypoint.sh /
 RUN chmod 755 /entrypoint.sh
-ENTRYPOINT [ "/entrypoint.sh" ]
-
-# Set function handler
-CMD ["src/index.handler"]
+ENTRYPOINT [ "/entrypoint.sh", "index.handler"]

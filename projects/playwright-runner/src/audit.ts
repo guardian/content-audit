@@ -85,10 +85,11 @@ export const auditPage = async (url: string) => {
   };
 
   const maxScrollHeight = await page.evaluate(() => document.body.scrollHeight);
+  const maxPages = 50;
   let currentScrollPos = 0;
   let pageNo = 1;
   await takePageScreenshot(pageNo);
-  while (currentScrollPos < maxScrollHeight) {
+  while (currentScrollPos < maxScrollHeight && pageNo < maxPages) {
     pageNo++;
     currentScrollPos = await page.evaluate(() => window.scrollY);
     await page.evaluate(
