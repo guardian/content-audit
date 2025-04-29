@@ -134,7 +134,7 @@ export class ContentAudit extends GuStack {
 
 		const tagOrDigest = process.env['BUILD_NUMBER'] ?? 'DEV';
 
-		const dbAppName = `${this.app}-db`;
+		const dbAppName = `content-audit`;
 		const dbPort = 5432;
 		const dbUser = 'root';
 
@@ -147,7 +147,7 @@ export class ContentAudit extends GuStack {
 
 		const db = new GuDatabaseInstance(this, 'RuleManagerRDS', {
 			app: dbAppName,
-			databaseName: this.app,
+			databaseName: `contentaudit`, // Only alphanumeric characters :'(
 			vpc,
 			vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
 			allocatedStorage: 50,
@@ -193,8 +193,8 @@ export class ContentAudit extends GuStack {
 					subnets: privateSubnets,
 				},
 				environment: {
-					DATABASE_URL: `postgresql://${dbUser}:${db.secret?.secretValue}@${db.instanceEndpoint}/${this.app}?schema=public`
-				}
+					DATABASE_URL: `postgresql://${dbUser}:${db.secret?.secretValue}@${db.instanceEndpoint}/${this.app}?schema=public`,
+				},
 			},
 		);
 
