@@ -5,7 +5,7 @@ import {
 	GuPolicy,
 } from '@guardian/cdk/lib/constructs/iam';
 import { Duration, type App } from 'aws-cdk-lib';
-import { LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
+import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
 import { Subnet, Vpc } from 'aws-cdk-lib/aws-ec2';
 import {
 	Repository,
@@ -141,9 +141,20 @@ export class ContentAudit extends GuStack {
 			},
 		);
 
-		new LambdaRestApi(this, 'PlaywrightRunnerApi', {
+		const api = new LambdaRestApi(this, 'PlaywrightRunnerApi', {
 			handler: playwrightRunnerFunction,
-			proxy: true,
+			apiKeySourceType: ApiKeySourceType.HEADER,
+			defaultMethodOptions: {
+				apiKeyRequired: true,
+			},
+		});
+
+		const usagePlan = api.addUsagePlan('PlaywrightRunnerUsagePlan', {
+			name: 'PlaywrightRunnerUsagePlan',
+		});
+
+		usagePlan.addApiStage({
+			stage: api.deploymentStage,
 		});
 	}
 }
