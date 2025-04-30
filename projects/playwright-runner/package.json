@@ -31,6 +31,6 @@
     "node-gyp": "^11.2.0"
   },
   "prisma": {
-		"schema": "prisma/schema.prisma"
+		"schema": "./prisma/schema.prisma"
 	}
 }
