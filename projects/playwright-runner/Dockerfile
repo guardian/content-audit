@@ -20,8 +20,12 @@ ENV SETUPTOOLS_USE_DISTUTILS=stdlib
 RUN mkdir -p ${FUNCTION_DIR}
 WORKDIR ${FUNCTION_DIR}
 
-# Create function dir and install node packages. Do this first to
-# ensure we have a separate cache layer for the install process.
+# The following copy commands are split to ensure we have discrete layers for
+# different parts of the build process, ensuring good caching when we only ship
+# code changes. It'd be simpler to copy the entire working directory, but that
+# would mean rebuilding most of the image on each build, which is much slower.
+
+# Create function dir and install node packages.
 COPY ./package.json ${FUNCTION_DIR}
 COPY ./package-lock.json ${FUNCTION_DIR}
 COPY ./prisma/ ${FUNCTION_DIR}/prisma/
