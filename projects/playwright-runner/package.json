@@ -8,6 +8,7 @@
     "run": "node --experimental-strip-types ./src/index.js",
     "test": "node --experimental-strip-types --test \"**/*.spec.ts\"",
     "test:watch": "node --experimental-strip-types --test --watch \"**/*.spec.ts\"",
+    "migrate:reset": "prisma migrate reset --force",
     "postinstall": "prisma generate"
   },
   "keywords": [],
