@@ -1,0 +1,17 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Represents an audit run against a particular page
+model audit_page_run {
+  id         Int       @id @default(autoincrement())
+  created_at DateTime? @default(now()) @db.Date
+  /// The URL of the page that ran
+  url        String?   @db.VarChar(2048)
+}
