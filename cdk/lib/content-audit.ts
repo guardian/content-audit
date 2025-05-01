@@ -1,12 +1,30 @@
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
-import { GuParameter, GuStack } from '@guardian/cdk/lib/constructs/core';
+import {
+	GuAmiParameter,
+	GuParameter,
+	GuStack,
+} from '@guardian/cdk/lib/constructs/core';
+import { GuSecurityGroup } from '@guardian/cdk/lib/constructs/ec2';
 import {
 	GuGithubActionsRole,
 	GuPolicy,
 } from '@guardian/cdk/lib/constructs/iam';
-import { Duration, type App } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, type App } from 'aws-cdk-lib';
 import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
-import { Subnet, Vpc } from 'aws-cdk-lib/aws-ec2';
+import { GuDatabaseInstance } from '@guardian/cdk/lib/constructs/rds';
+import {
+	GuAutoScalingGroup,
+	GuUserData,
+} from '@guardian/cdk/lib/constructs/autoscaling';
+import {
+	Port,
+	Subnet,
+	SubnetType as AWSSubnetType,
+	Vpc,
+	InstanceType,
+	InstanceClass,
+	InstanceSize,
+} from 'aws-cdk-lib/aws-ec2';
 import {
 	Repository,
 	RepositoryEncryption,
@@ -19,10 +37,30 @@ import {
 	DockerImageCode,
 	DockerImageFunction,
 } from 'aws-cdk-lib/aws-lambda';
+import {
+	Credentials,
+	DatabaseInstanceEngine,
+	PostgresEngineVersion,
+	StorageType,
+} from 'aws-cdk-lib/aws-rds';
+import { GroupMetric, GroupMetrics } from 'aws-cdk-lib/aws-autoscaling';
 
 export class ContentAudit extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
 		super(scope, id, props);
+
+		if (!this.app) {
+			throw new Error(
+				'[ContentAudit]: You must set the `app` property when creating this stack',
+			);
+		}
+
+		const app = this.app;
+		const region = 'eu-west-1';
+
+		const imageTag = new GuParameter(this, 'ImageTag', {
+			description: 'The docker image tag to use. Useful when cloudforming manually - in CI, this is set by BUILD_NUMBER',
+		});
 
 		const vpcId = new GuParameter(this, 'VpcParam', {
 			fromSSM: true,
@@ -37,19 +75,28 @@ export class ContentAudit extends GuStack {
 			description: 'Private subnets of the deployment VPC',
 		});
 
+		const publicSubnetIds = new GuParameter(this, 'PublicSubnetsParam', {
+			fromSSM: true,
+			type: 'List<String>',
+			default: `/account/vpc/primary/subnets/public`,
+			description: 'Public subnets of the deployment VPC',
+		});
+
 		const privateSubnets = privateSubnetIds.valueAsList.map((id, ctr) =>
 			Subnet.fromSubnetId(this, `private${ctr}`, id),
 		);
 
 		const vpc = Vpc.fromVpcAttributes(this, 'Vpc', {
 			vpcId: vpcId.valueAsString,
-			availabilityZones: ['eu-west-1a', 'eu-west-1b', 'eu-west-1c'],
+			availabilityZones: ['ignored'],
+			privateSubnetIds: privateSubnetIds.valueAsList,
+			publicSubnetIds: publicSubnetIds.valueAsList,
 		});
 
 		const encryptionKey = new Key(this, 'PlaywrightRunnerKey');
 
 		const ecrRepo = new Repository(this, 'PlaywrightRunnerRepository', {
-			repositoryName: 'content-audit/playwright-runner',
+			repositoryName: `${this.app}/playwright-runner`,
 			encryption: RepositoryEncryption.KMS,
 			encryptionKey,
 			imageTagMutability: TagMutability.IMMUTABLE,
@@ -123,7 +170,64 @@ export class ContentAudit extends GuStack {
 			],
 		});
 
-		const tagOrDigest = process.env['BUILD_NUMBER'] ?? 'DEV';
+		const tagOrDigest = process.env['BUILD_NUMBER'] ?? imageTag.valueAsString;
+
+		const dbPort = 5432;
+		const dbUser = 'root';
+
+		const dbAccessSecurityGroup = new GuSecurityGroup(this, 'DBSecurityGroup', {
+			app: app,
+			description: 'Allow connection from playwright-runner lambda to DB',
+			vpc,
+			allowAllOutbound: false,
+		});
+
+		dbAccessSecurityGroup.addIngressRule(
+			dbAccessSecurityGroup,
+			Port.tcp(dbPort),
+		);
+
+		const db = new GuDatabaseInstance(this, 'RuleManagerRDS', {
+			app: app,
+			databaseName: `contentaudit`, // Only alphanumeric characters :'(
+			vpc,
+			vpcSubnets: { subnetType: AWSSubnetType.PRIVATE_WITH_EGRESS },
+			allocatedStorage: 50,
+			allowMajorVersionUpgrade: false,
+			autoMinorVersionUpgrade: true,
+			deleteAutomatedBackups: false,
+			engine: DatabaseInstanceEngine.postgres({
+				version: PostgresEngineVersion.VER_17,
+			}),
+			iamAuthentication: true,
+			instanceType: 'db.t4g.micro',
+			instanceIdentifier: `${app}-db-${this.stage}`,
+			credentials: Credentials.fromGeneratedSecret(dbUser, {
+				secretName: `${app}-master-credentials`,
+			}),
+			multiAz: this.stage === 'PROD',
+			port: dbPort,
+			preferredMaintenanceWindow: 'Mon:06:30-Mon:07:00',
+			securityGroups: [dbAccessSecurityGroup],
+			storageEncrypted: true,
+			storageType: StorageType.GP2,
+			removalPolicy: RemovalPolicy.SNAPSHOT,
+			devXBackups: { enabled: true },
+		});
+
+		const dbSecret = db.secret!;
+
+		const dbProxy = db.addProxy('DatabaseProxy', {
+			dbProxyName: `${app}-proxy-${this.stage}`,
+			vpc,
+			vpcSubnets: { subnetType: AWSSubnetType.PUBLIC },
+			secrets: [dbSecret],
+			iamAuth: true,
+			requireTLS: true,
+			securityGroups: [dbAccessSecurityGroup],
+		});
+
+		const dbHostname = dbProxy.endpoint;
 
 		const playwrightRunnerFunction = new DockerImageFunction(
 			this,
@@ -138,7 +242,18 @@ export class ContentAudit extends GuStack {
 				vpcSubnets: {
 					subnets: privateSubnets,
 				},
+				environment: {
+					DATABASE_URL: `postgresql://${dbUser}:${dbSecret.secretValueFromJson("password")}@${dbHostname}:${dbPort}/${this.app}?schema=public`,
+				},
 			},
+		);
+
+		dbProxy.grantConnect(playwrightRunnerFunction);
+
+		dbAccessSecurityGroup.connections.allowFrom(
+			playwrightRunnerFunction,
+			Port.tcp(dbPort),
+			'Allow connection from playwright-runner lambda to DB',
 		);
 
 		const api = new LambdaRestApi(this, 'PlaywrightRunnerApi', {
@@ -156,5 +271,43 @@ export class ContentAudit extends GuStack {
 		usagePlan.addApiStage({
 			stage: api.deploymentStage,
 		});
+
+		const dbBastionASGName = `${app}-bastion-${this.stage}`;
+		const dbBastionASG = new GuAutoScalingGroup(
+			this,
+			'DatabaseBastionASG',
+			{
+				vpc,
+				app,
+				autoScalingGroupName: dbBastionASGName,
+				instanceType: InstanceType.of(InstanceClass.T4G, InstanceSize.NANO),
+				groupMetrics: [new GroupMetrics(GroupMetric.IN_SERVICE_INSTANCES)],
+				allowAllOutbound: false,
+				minimumInstances: 0,
+				maximumInstances: 1,
+				additionalSecurityGroups: [dbAccessSecurityGroup],
+				imageId: new GuAmiParameter(this, { app }),
+				userData: new GuUserData(this, {
+					app,
+					distributable: {
+						fileName: 'startup.sh',
+						executionStatement: `bash /${app}/startup.sh ${dbBastionASGName} ${region}`,
+					},
+				}).userData,
+				imageRecipe: 'investigations-lurch-bastion'
+			},
+		);
+
+		dbProxy.grantConnect(dbBastionASG);
+		dbBastionASG.addToRolePolicy(
+			// allow the instance to effectively terminate itself by reducing the capacity of the ASG that controls it
+			new PolicyStatement({
+				effect: Effect.ALLOW,
+				actions: ['autoscaling:SetDesiredCapacity'],
+				resources: [
+					`arn:aws:autoscaling:${region}:${this.account}:*/${dbBastionASGName}`, // unfortunately can't use the databaseBastionASG.autoScalingGroupArn property as it's circular
+				],
+			}),
+		);
 	}
 }
