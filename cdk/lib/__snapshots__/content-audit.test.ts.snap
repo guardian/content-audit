@@ -6,10 +6,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     "gu:cdk:constructs": [
       "GuParameter",
       "GuParameter",
+      "GuParameter",
       "GuPolicy",
       "GuGithubActionsRole",
       "GuSecurityGroup",
-      "GuSubnetListParameter",
       "GuDatabaseInstance",
     ],
     "gu:cdk:version": "TEST",
@@ -51,14 +51,14 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     },
   },
   "Parameters": {
-    "PrivateSubnets": {
-      "Default": "/account/vpc/primary/subnets/private",
-      "Description": "A list of private subnets",
-      "Type": "AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>",
-    },
     "PrivateSubnetsParam": {
       "Default": "/account/vpc/primary/subnets/private",
       "Description": "Private subnets of the deployment VPC",
+      "Type": "AWS::SSM::Parameter::Value<List<String>>",
+    },
+    "PublicSubnetsParam": {
+      "Default": "/account/vpc/primary/subnets/public",
+      "Description": "Public subnets of the deployment VPC",
       "Type": "AWS::SSM::Parameter::Value<List<String>>",
     },
     "VpcParam": {
@@ -122,15 +122,6 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     "DBSecurityGroupContentaudit7865E2CC": {
       "Properties": {
         "GroupDescription": "Allow connection from playwright-runner lambda to DB",
-        "SecurityGroupEgress": [
-          {
-            "CidrIp": "255.255.255.255/32",
-            "Description": "Disallow all traffic",
-            "FromPort": 252,
-            "IpProtocol": "icmp",
-            "ToPort": 86,
-          },
-        ],
         "Tags": [
           {
             "Key": "App",
@@ -159,6 +150,58 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::EC2::SecurityGroup",
     },
+    "DBSecurityGroupContentauditfromContentAuditDBSecurityGroupContentauditF87D40435432647BFA9A": {
+      "Properties": {
+        "Description": "from ContentAuditDBSecurityGroupContentauditF87D4043:5432",
+        "FromPort": 5432,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "DBSecurityGroupContentaudit7865E2CC",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "DBSecurityGroupContentaudit7865E2CC",
+            "GroupId",
+          ],
+        },
+        "ToPort": 5432,
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
+    },
+    "DBSecurityGroupContentauditfromContentAuditDBSecurityGroupContentauditF87D4043IndirectPort3DF62DF6": {
+      "Properties": {
+        "Description": "Allow connections to the database Instance from the Proxy",
+        "FromPort": {
+          "Fn::GetAtt": [
+            "RuleManagerRDSContentauditE35AF1B1",
+            "Endpoint.Port",
+          ],
+        },
+        "GroupId": {
+          "Fn::GetAtt": [
+            "DBSecurityGroupContentaudit7865E2CC",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "DBSecurityGroupContentaudit7865E2CC",
+            "GroupId",
+          ],
+        },
+        "ToPort": {
+          "Fn::GetAtt": [
+            "RuleManagerRDSContentauditE35AF1B1",
+            "Endpoint.Port",
+          ],
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
+    },
     "DBSecurityGroupContentauditfromContentAuditPlaywrightRunnerLambdaSecurityGroup1F8D33FF543290250698": {
       "Properties": {
         "Description": "Allow connection from playwright-runner lambda to DB",
@@ -180,32 +223,36 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::EC2::SecurityGroupIngress",
     },
-    "DBSubnetGroup": {
+    "DBSecurityGroupContentaudittoContentAuditDBSecurityGroupContentauditF87D4043IndirectPort83F31B9C": {
       "Properties": {
-        "DBSubnetGroupDescription": "Subnet for typerighter rule-manager database",
-        "SubnetIds": {
-          "Ref": "PrivateSubnets",
+        "Description": "Allow connections to the database Instance from the Proxy",
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "DBSecurityGroupContentaudit7865E2CC",
+            "GroupId",
+          ],
         },
-        "Tags": [
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/content-audit",
-          },
-          {
-            "Key": "Stack",
-            "Value": "content-api",
-          },
-          {
-            "Key": "Stage",
-            "Value": "TEST",
-          },
-        ],
+        "FromPort": {
+          "Fn::GetAtt": [
+            "RuleManagerRDSContentauditE35AF1B1",
+            "Endpoint.Port",
+          ],
+        },
+        "GroupId": {
+          "Fn::GetAtt": [
+            "DBSecurityGroupContentaudit7865E2CC",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "ToPort": {
+          "Fn::GetAtt": [
+            "RuleManagerRDSContentauditE35AF1B1",
+            "Endpoint.Port",
+          ],
+        },
       },
-      "Type": "AWS::RDS::DBSubnetGroup",
+      "Type": "AWS::EC2::SecurityGroupEgress",
     },
     "GithubActionsRoleF5CC769F": {
       "Properties": {
@@ -239,6 +286,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         },
         "Tags": [
           {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
             "Key": "gu:cdk:version",
             "Value": "TEST",
           },
@@ -263,6 +314,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "ApiKeySourceType": "HEADER",
         "Name": "PlaywrightRunnerApi",
         "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
           {
             "Key": "gu:cdk:version",
             "Value": "TEST",
@@ -452,6 +507,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         ],
         "Tags": [
           {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
             "Key": "gu:cdk:version",
             "Value": "TEST",
           },
@@ -472,7 +531,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "Type": "AWS::IAM::Role",
       "UpdateReplacePolicy": "Retain",
     },
-    "PlaywrightRunnerApiDeployment4091482A50900073e66d6c2b57b0d76b75fb3584": {
+    "PlaywrightRunnerApiDeployment4091482Ac44bc25ca5b2d70992d1a1d12200c8e7": {
       "DependsOn": [
         "PlaywrightRunnerApiproxyANY1EF90290",
         "PlaywrightRunnerApiproxy1CACB525",
@@ -492,13 +551,17 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       ],
       "Properties": {
         "DeploymentId": {
-          "Ref": "PlaywrightRunnerApiDeployment4091482A50900073e66d6c2b57b0d76b75fb3584",
+          "Ref": "PlaywrightRunnerApiDeployment4091482Ac44bc25ca5b2d70992d1a1d12200c8e7",
         },
         "RestApiId": {
           "Ref": "PlaywrightRunnerApi62D41F72",
         },
         "StageName": "prod",
         "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
           {
             "Key": "gu:cdk:version",
             "Value": "TEST",
@@ -533,6 +596,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           },
         ],
         "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
           {
             "Key": "gu:cdk:version",
             "Value": "TEST",
@@ -721,6 +788,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         },
         "Tags": [
           {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
             "Key": "gu:cdk:version",
             "Value": "TEST",
           },
@@ -743,6 +814,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     },
     "PlaywrightRunnerLambda4FD8FEBA": {
       "DependsOn": [
+        "PlaywrightRunnerLambdaServiceRoleDefaultPolicy71DCDE47",
         "PlaywrightRunnerLambdaServiceRole9CE1E928",
       ],
       "Properties": {
@@ -810,7 +882,14 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
                   {
                     "Ref": "RuleManagerRDSContentauditSecretAttachment08AEA541",
                   },
-                  ":SecretString:::}}@[object Object]/undefined?schema=public",
+                  ":SecretString:::}}@",
+                  {
+                    "Fn::GetAtt": [
+                      "RuleManagerRDSContentauditDatabaseProxy9B0898FC",
+                      "Endpoint",
+                    ],
+                  },
+                  ":5432/content-audit?schema=public",
                 ],
               ],
             },
@@ -826,6 +905,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           ],
         },
         "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
           {
             "Key": "gu:cdk:version",
             "Value": "TEST",
@@ -871,6 +954,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           },
         ],
         "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
           {
             "Key": "gu:cdk:version",
             "Value": "TEST",
@@ -936,6 +1023,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         ],
         "Tags": [
           {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
             "Key": "gu:cdk:version",
             "Value": "TEST",
           },
@@ -954,6 +1045,67 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         ],
       },
       "Type": "AWS::IAM::Role",
+    },
+    "PlaywrightRunnerLambdaServiceRoleDefaultPolicy71DCDE47": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "rds-db:connect",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":rds-db:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":dbuser:",
+                    {
+                      "Fn::Select": [
+                        6,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Fn::GetAtt": [
+                                "RuleManagerRDSContentauditDatabaseProxy9B0898FC",
+                                "DBProxyArn",
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                    "/{{resolve:secretsmanager:",
+                    {
+                      "Ref": "RuleManagerRDSContentauditSecretAttachment08AEA541",
+                    },
+                    ":SecretString:username::}}",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "PlaywrightRunnerLambdaServiceRoleDefaultPolicy71DCDE47",
+        "Roles": [
+          {
+            "Ref": "PlaywrightRunnerLambdaServiceRole9CE1E928",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
     },
     "PlaywrightRunnerRepository0171D4DD": {
       "DeletionPolicy": "Retain",
@@ -974,7 +1126,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "LifecyclePolicy": {
           "LifecyclePolicyText": "{"rules":[{"rulePriority":1,"description":"Limit the number of retained images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":100},"action":{"type":"expire"}}]}",
         },
-        "RepositoryName": "undefined/playwright-runner",
+        "RepositoryName": "content-audit/playwright-runner",
         "RepositoryPolicyText": {
           "Statement": [
             {
@@ -1010,6 +1162,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           "Version": "2012-10-17",
         },
         "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
           {
             "Key": "gu:cdk:version",
             "Value": "TEST",
@@ -1094,6 +1250,150 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::IAM::Policy",
     },
+    "RuleManagerRDSContentauditDatabaseProxy9B0898FC": {
+      "Properties": {
+        "Auth": [
+          {
+            "AuthScheme": "SECRETS",
+            "IAMAuth": "REQUIRED",
+            "SecretArn": {
+              "Ref": "RuleManagerRDSContentauditSecretAttachment08AEA541",
+            },
+          },
+        ],
+        "DBProxyName": "content-audit-proxy-TEST",
+        "EngineFamily": "POSTGRESQL",
+        "RequireTLS": true,
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "RuleManagerRDSContentauditDatabaseProxyIAMRoleFAE4FAAC",
+            "Arn",
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "VpcSecurityGroupIds": [
+          {
+            "Fn::GetAtt": [
+              "DBSecurityGroupContentaudit7865E2CC",
+              "GroupId",
+            ],
+          },
+        ],
+        "VpcSubnetIds": {
+          "Ref": "PublicSubnetsParam",
+        },
+      },
+      "Type": "AWS::RDS::DBProxy",
+    },
+    "RuleManagerRDSContentauditDatabaseProxyIAMRoleDefaultPolicy131DE0BE": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "RuleManagerRDSContentauditSecretAttachment08AEA541",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "RuleManagerRDSContentauditDatabaseProxyIAMRoleDefaultPolicy131DE0BE",
+        "Roles": [
+          {
+            "Ref": "RuleManagerRDSContentauditDatabaseProxyIAMRoleFAE4FAAC",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "RuleManagerRDSContentauditDatabaseProxyIAMRoleFAE4FAAC": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "rds.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "RuleManagerRDSContentauditDatabaseProxyProxyTargetGroup2718BDBF": {
+      "Properties": {
+        "ConnectionPoolConfigurationInfo": {},
+        "DBInstanceIdentifiers": [
+          {
+            "Ref": "RuleManagerRDSContentauditE35AF1B1",
+          },
+        ],
+        "DBProxyName": {
+          "Ref": "RuleManagerRDSContentauditDatabaseProxy9B0898FC",
+        },
+        "TargetGroupName": "default",
+      },
+      "Type": "AWS::RDS::DBProxyTargetGroup",
+    },
     "RuleManagerRDSContentauditE35AF1B1": {
       "DeletionPolicy": "Snapshot",
       "Properties": {
@@ -1102,10 +1402,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "AutoMinorVersionUpgrade": true,
         "CopyTagsToSnapshot": true,
         "DBInstanceClass": "db.t4g.micro",
-        "DBInstanceIdentifier": "typerighter-rule-manager-store-test",
+        "DBInstanceIdentifier": "content-audit-db-test",
         "DBName": "contentaudit",
         "DBSubnetGroupName": {
-          "Ref": "DBSubnetGroup",
+          "Ref": "RuleManagerRDSContentauditSubnetGroup94EB7174",
         },
         "DeleteAutomatedBackups": false,
         "DeletionProtection": true,
@@ -1179,6 +1479,41 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "TargetType": "AWS::RDS::DBInstance",
       },
       "Type": "AWS::SecretsManager::SecretTargetAttachment",
+    },
+    "RuleManagerRDSContentauditSubnetGroup94EB7174": {
+      "Properties": {
+        "DBSubnetGroupDescription": "Subnet group for RuleManagerRDSContentaudit database",
+        "SubnetIds": {
+          "Ref": "PrivateSubnetsParam",
+        },
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::RDS::DBSubnetGroup",
     },
   },
 }
