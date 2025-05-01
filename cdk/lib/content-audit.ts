@@ -1,5 +1,6 @@
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
 import {
+	GuAmiParameter,
 	GuParameter,
 	GuStack,
 } from '@guardian/cdk/lib/constructs/core';
@@ -12,10 +13,17 @@ import { Duration, RemovalPolicy, type App } from 'aws-cdk-lib';
 import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
 import { GuDatabaseInstance } from '@guardian/cdk/lib/constructs/rds';
 import {
+	GuAutoScalingGroup,
+	GuUserData,
+} from '@guardian/cdk/lib/constructs/autoscaling';
+import {
 	Port,
 	Subnet,
 	SubnetType as AWSSubnetType,
 	Vpc,
+	InstanceType,
+	InstanceClass,
+	InstanceSize,
 } from 'aws-cdk-lib/aws-ec2';
 import {
 	Repository,
@@ -35,6 +43,7 @@ import {
 	PostgresEngineVersion,
 	StorageType,
 } from 'aws-cdk-lib/aws-rds';
+import { GroupMetric, GroupMetrics } from 'aws-cdk-lib/aws-autoscaling';
 
 export class ContentAudit extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
@@ -47,6 +56,7 @@ export class ContentAudit extends GuStack {
 		}
 
 		const app = this.app;
+		const region = 'eu-west-1';
 
 		const vpcId = new GuParameter(this, 'VpcParam', {
 			fromSSM: true,
@@ -255,5 +265,43 @@ export class ContentAudit extends GuStack {
 		usagePlan.addApiStage({
 			stage: api.deploymentStage,
 		});
+
+		const dbBastionASGName = `${app}-bastion-${this.stage}`;
+		const dbBastionASG = new GuAutoScalingGroup(
+			this,
+			'DatabaseBastionASG',
+			{
+				vpc,
+				app,
+				autoScalingGroupName: dbBastionASGName,
+				instanceType: InstanceType.of(InstanceClass.T4G, InstanceSize.NANO),
+				groupMetrics: [new GroupMetrics(GroupMetric.IN_SERVICE_INSTANCES)],
+				allowAllOutbound: false,
+				minimumInstances: 0,
+				maximumInstances: 1,
+				additionalSecurityGroups: [dbAccessSecurityGroup],
+				imageId: new GuAmiParameter(this, { app }),
+				userData: new GuUserData(this, {
+					app,
+					distributable: {
+						fileName: 'startup.sh',
+						executionStatement: `bash /${app}/startup.sh ${dbBastionASGName} ${region}`,
+					},
+				}).userData,
+				imageRecipe: 'rds-bastion-jammy'
+			},
+		);
+
+		dbProxy.grantConnect(dbBastionASG);
+		dbBastionASG.addToRolePolicy(
+			// allow the instance to effectively terminate itself by reducing the capacity of the ASG that controls it
+			new PolicyStatement({
+				effect: Effect.ALLOW,
+				actions: ['autoscaling:SetDesiredCapacity'],
+				resources: [
+					`arn:aws:autoscaling:${region}:${this.account}:*/${dbBastionASGName}`, // unfortunately can't use the databaseBastionASG.autoScalingGroupArn property as it's circular
+				],
+			}),
+		);
 	}
 }
