@@ -6,9 +6,12 @@ Runs in a Docker image.
 
 ## Running locally
 
-The easiest way to work on code locally is likely to run the tests, which do not require a Docker environment to run:
+The easiest way to work on code locally is likely to run the tests, which do not require a Docker environment to run. They do require a local database, which you can spin up with `docker compose`:
 
 ```
+# run the local postgres DB in the background
+docker composer up -d
+
 npm run test
 
 # Or, if you'd like them to run on every change:
