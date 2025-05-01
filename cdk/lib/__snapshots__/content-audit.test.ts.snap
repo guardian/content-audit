@@ -7,6 +7,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "GuParameter",
       "GuParameter",
       "GuParameter",
+      "GuParameter",
       "GuPolicy",
       "GuGithubActionsRole",
       "GuSecurityGroup",
@@ -71,6 +72,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "Default": "/account/services/artifact.bucket",
       "Description": "SSM parameter containing the S3 bucket name holding distribution artifacts",
       "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "ImageTag": {
+      "Description": "The docker image tag to use. Useful when cloudforming manually - in CI, this is set by BUILD_NUMBER",
+      "Type": "String",
     },
     "LoggingStreamName": {
       "Default": "/account/services/logging.stream.name",
@@ -1266,7 +1271,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
                 {
                   "Ref": "PlaywrightRunnerRepository0171D4DD",
                 },
-                ":DEV",
+                ":",
+                {
+                  "Ref": "ImageTag",
+                },
               ],
             ],
           },
