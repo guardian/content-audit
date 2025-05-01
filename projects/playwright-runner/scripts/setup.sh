@@ -3,7 +3,16 @@ docker compose up -d --wait
 npm run migrate
 docker compose down
 
-# Add the connection string to the .env file read by Prisma for local development
 SCRIPT_DIR=$(dirname "$(realpath $0)")
 ENV_DIR=$SCRIPT_DIR/../
-echo 'DATABASE_URL="postgresql://content-audit:content-audit@localhost:5432/content-audit?schema=public"' > $ENV_DIR/.env
+
+# Add the connection string to the .env file read by Prisma for local development
+LOCAL_TEST_HOSTNAME=localhost
+LOCAL_DOCKER_HOSTNAME=host.docker.internal
+
+write_env() {
+    echo "DATABASE_URL=postgresql://content-audit:content-audit@$1:5432/content-audit?schema=public" > "$2"
+}
+
+write_env $LOCAL_TEST_HOSTNAME $ENV_DIR/.env
+write_env $LOCAL_DOCKER_HOSTNAME $ENV_DIR/.env-docker

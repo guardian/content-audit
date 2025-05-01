@@ -49,4 +49,4 @@ ADD https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest
 RUN chmod 755 /usr/local/bin/aws-lambda-rie
 COPY entrypoint.sh /
 RUN chmod 755 /entrypoint.sh
-ENTRYPOINT [ "/entrypoint.sh", "src/index.handler"]
+ENTRYPOINT ["/entrypoint.sh", "src/index.handler"]
