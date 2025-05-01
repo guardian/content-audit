@@ -1,6 +1,9 @@
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
-import { GuParameter, GuStack } from '@guardian/cdk/lib/constructs/core';
-import { GuSecurityGroup, GuVpc } from '@guardian/cdk/lib/constructs/ec2';
+import {
+	GuParameter,
+	GuStack,
+} from '@guardian/cdk/lib/constructs/core';
+import { GuSecurityGroup } from '@guardian/cdk/lib/constructs/ec2';
 import {
 	GuGithubActionsRole,
 	GuPolicy,
@@ -8,7 +11,12 @@ import {
 import { Duration, RemovalPolicy, type App } from 'aws-cdk-lib';
 import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
 import { GuDatabaseInstance } from '@guardian/cdk/lib/constructs/rds';
-import { Port, Subnet, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
+import {
+	Port,
+	Subnet,
+	SubnetType as AWSSubnetType,
+	Vpc,
+} from 'aws-cdk-lib/aws-ec2';
 import {
 	Repository,
 	RepositoryEncryption,
@@ -26,12 +34,19 @@ import {
 	DatabaseInstanceEngine,
 	PostgresEngineVersion,
 	StorageType,
-	SubnetGroup,
 } from 'aws-cdk-lib/aws-rds';
 
 export class ContentAudit extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
 		super(scope, id, props);
+
+		if (!this.app) {
+			throw new Error(
+				'[ContentAudit]: You must set the `app` property when creating this stack',
+			);
+		}
+
+		const app = this.app;
 
 		const vpcId = new GuParameter(this, 'VpcParam', {
 			fromSSM: true,
@@ -45,6 +60,12 @@ export class ContentAudit extends GuStack {
 			default: `/account/vpc/primary/subnets/private`,
 			description: 'Private subnets of the deployment VPC',
 		});
+		const publicSubnetIds = new GuParameter(this, 'PublicSubnetsParam', {
+			fromSSM: true,
+			type: 'List<String>',
+			default: `/account/vpc/primary/subnets/public`,
+			description: 'Public subnets of the deployment VPC',
+		});
 
 		const privateSubnets = privateSubnetIds.valueAsList.map((id, ctr) =>
 			Subnet.fromSubnetId(this, `private${ctr}`, id),
@@ -52,7 +73,9 @@ export class ContentAudit extends GuStack {
 
 		const vpc = Vpc.fromVpcAttributes(this, 'Vpc', {
 			vpcId: vpcId.valueAsString,
-			availabilityZones: ['eu-west-1a', 'eu-west-1b', 'eu-west-1c'],
+			availabilityZones: ['ignored'],
+			privateSubnetIds: privateSubnetIds.valueAsList,
+			publicSubnetIds: publicSubnetIds.valueAsList,
 		});
 
 		const encryptionKey = new Key(this, 'PlaywrightRunnerKey');
@@ -134,22 +157,26 @@ export class ContentAudit extends GuStack {
 
 		const tagOrDigest = process.env['BUILD_NUMBER'] ?? 'DEV';
 
-		const dbAppName = `content-audit`;
 		const dbPort = 5432;
 		const dbUser = 'root';
 
 		const dbAccessSecurityGroup = new GuSecurityGroup(this, 'DBSecurityGroup', {
-			app: dbAppName,
+			app: app,
 			description: 'Allow connection from playwright-runner lambda to DB',
 			vpc,
 			allowAllOutbound: false,
 		});
 
+		dbAccessSecurityGroup.addIngressRule(
+			dbAccessSecurityGroup,
+			Port.tcp(dbPort),
+		);
+
 		const db = new GuDatabaseInstance(this, 'RuleManagerRDS', {
-			app: dbAppName,
+			app: app,
 			databaseName: `contentaudit`, // Only alphanumeric characters :'(
 			vpc,
-			vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
+			vpcSubnets: { subnetType: AWSSubnetType.PRIVATE_WITH_EGRESS },
 			allocatedStorage: 50,
 			allowMajorVersionUpgrade: false,
 			autoMinorVersionUpgrade: true,
@@ -158,16 +185,9 @@ export class ContentAudit extends GuStack {
 				version: PostgresEngineVersion.VER_17,
 			}),
 			instanceType: 'db.t4g.micro',
-			instanceIdentifier: `typerighter-rule-manager-store-${this.stage}`,
-			subnetGroup: new SubnetGroup(this, 'DBSubnetGroup', {
-				vpc,
-				vpcSubnets: {
-					subnets: GuVpc.subnetsFromParameter(this),
-				},
-				description: 'Subnet for typerighter rule-manager database',
-			}),
+			instanceIdentifier: `${app}-db-${this.stage}`,
 			credentials: Credentials.fromGeneratedSecret(dbUser, {
-				secretName: `${dbAppName}-master-credentials`,
+				secretName: `${app}-master-credentials`,
 			}),
 			multiAz: this.stage === 'PROD',
 			port: dbPort,
@@ -178,6 +198,20 @@ export class ContentAudit extends GuStack {
 			removalPolicy: RemovalPolicy.SNAPSHOT,
 			devXBackups: { enabled: true },
 		});
+
+		const dbSecret = db.secret!;
+
+		const dbProxy = db.addProxy('DatabaseProxy', {
+			dbProxyName: `${app}-proxy-${this.stage}`,
+			vpc,
+			vpcSubnets: { subnetType: AWSSubnetType.PUBLIC },
+			secrets: [dbSecret],
+			iamAuth: true,
+			requireTLS: true,
+			securityGroups: [dbAccessSecurityGroup],
+		});
+
+		const dbHostname = dbProxy.endpoint;
 
 		const playwrightRunnerFunction = new DockerImageFunction(
 			this,
@@ -193,10 +227,12 @@ export class ContentAudit extends GuStack {
 					subnets: privateSubnets,
 				},
 				environment: {
-					DATABASE_URL: `postgresql://${dbUser}:${db.secret?.secretValue}@${db.instanceEndpoint}/${this.app}?schema=public`,
+					DATABASE_URL: `postgresql://${dbUser}:${dbSecret.secretValue}@${dbHostname}:${dbPort}/${this.app}?schema=public`,
 				},
 			},
 		);
+
+		dbProxy.grantConnect(playwrightRunnerFunction);
 
 		dbAccessSecurityGroup.connections.allowFrom(
 			playwrightRunnerFunction,
