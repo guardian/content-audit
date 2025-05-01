@@ -58,6 +58,10 @@ export class ContentAudit extends GuStack {
 		const app = this.app;
 		const region = 'eu-west-1';
 
+		const imageTag = new GuParameter(this, 'ImageTag', {
+			description: 'The docker image tag to use. Useful when cloudforming manually - in CI, this is set by BUILD_NUMBER',
+		});
+
 		const vpcId = new GuParameter(this, 'VpcParam', {
 			fromSSM: true,
 			default: `/account/vpc/primary/id`,
@@ -70,6 +74,7 @@ export class ContentAudit extends GuStack {
 			default: `/account/vpc/primary/subnets/private`,
 			description: 'Private subnets of the deployment VPC',
 		});
+
 		const publicSubnetIds = new GuParameter(this, 'PublicSubnetsParam', {
 			fromSSM: true,
 			type: 'List<String>',
@@ -165,7 +170,7 @@ export class ContentAudit extends GuStack {
 			],
 		});
 
-		const tagOrDigest = process.env['BUILD_NUMBER'] ?? 'DEV';
+		const tagOrDigest = process.env['BUILD_NUMBER'] ?? imageTag.valueAsString;
 
 		const dbPort = 5432;
 		const dbUser = 'root';
@@ -194,6 +199,7 @@ export class ContentAudit extends GuStack {
 			engine: DatabaseInstanceEngine.postgres({
 				version: PostgresEngineVersion.VER_17,
 			}),
+			iamAuthentication: true,
 			instanceType: 'db.t4g.micro',
 			instanceIdentifier: `${app}-db-${this.stage}`,
 			credentials: Credentials.fromGeneratedSecret(dbUser, {
@@ -237,7 +243,7 @@ export class ContentAudit extends GuStack {
 					subnets: privateSubnets,
 				},
 				environment: {
-					DATABASE_URL: `postgresql://${dbUser}:${dbSecret.secretValue}@${dbHostname}:${dbPort}/${this.app}?schema=public`,
+					DATABASE_URL: `postgresql://${dbUser}:${dbSecret.secretValueFromJson("password")}@${dbHostname}:${dbPort}/${this.app}?schema=public`,
 				},
 			},
 		);
@@ -288,7 +294,7 @@ export class ContentAudit extends GuStack {
 						executionStatement: `bash /${app}/startup.sh ${dbBastionASGName} ${region}`,
 					},
 				}).userData,
-				imageRecipe: 'rds-bastion-jammy'
+				imageRecipe: 'investigations-lurch-bastion'
 			},
 		);
 
