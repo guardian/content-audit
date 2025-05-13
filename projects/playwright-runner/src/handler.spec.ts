@@ -2,6 +2,7 @@ import test, { it, mock } from "node:test";
 import { createHandler } from "./handler.ts";
 import type { APIGatewayProxyEvent, Context } from "aws-lambda";
 import assert from "node:assert";
+import { getPrismaClient } from "./util/db.ts";
 
 test("handler", async () => {
   const mockContext = {} as Context;
@@ -25,7 +26,8 @@ test("handler", async () => {
     const handler = createHandler(
       mock.fn(() => {
         throw new Error(errorMessage);
-      })
+      }),
+      getPrismaClient()
     );
 
     const response = await handler(
@@ -46,7 +48,7 @@ test("handler", async () => {
   });
 
   await it("should return a 400 given unparseable JSON as input", async () => {
-    const handler = createHandler(mock.fn());
+    const handler = createHandler(mock.fn(), getPrismaClient());
 
     const response = await handler(
       getRequest("asdf"),
@@ -66,7 +68,7 @@ test("handler", async () => {
   });
 
   await it("should return a 400 given an incorrect payload as input", async () => {
-    const handler = createHandler(mock.fn());
+    const handler = createHandler(mock.fn(), getPrismaClient());
 
     const response = await handler(
       getRequest(JSON.stringify({ incorrect: "input" })),
@@ -91,7 +93,7 @@ test("handler", async () => {
   });
 
   await it("should return a 200 if the audit succeeds", async () => {
-    const handler = createHandler(mock.fn());
+    const handler = createHandler(mock.fn(), getPrismaClient());
 
     const response = await handler(
       getRequest(JSON.stringify({ url: "example.com" })),

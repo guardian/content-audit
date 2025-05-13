@@ -5,6 +5,22 @@ on:
   pull_request:
   workflow_dispatch:
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+    - name: Run tests
+      working-directory: projects/playwright-runner
+      run: |
+        ./scripts/setup.sh
+        docker compose up -d
+        npm ci
+        npm run migrate
+        npm test
+
   create-and-push-playwright-runner-image:
     runs-on: ubuntu-24.04-arm
     permissions:
@@ -81,6 +97,7 @@ jobs:
     needs:
       - create-and-push-playwright-runner-image
       - build-cdk
+      - test
     permissions:
       id-token: write
       contents: read

@@ -20,26 +20,33 @@ ENV SETUPTOOLS_USE_DISTUTILS=stdlib
 RUN mkdir -p ${FUNCTION_DIR}
 WORKDIR ${FUNCTION_DIR}
 
-# Create function dir and install node packages. Do this first to
-# ensure we have a separate cache layer for the install process.
+# The following copy commands are split to ensure we have discrete layers for
+# different parts of the build process, ensuring good caching when we only ship
+# code changes. It'd be simpler to copy the entire working directory, but that
+# would mean rebuilding most of the image on each build, which is much slower.
+
+# Create function dir and install node packages.
 COPY ./package.json ${FUNCTION_DIR}
 COPY ./package-lock.json ${FUNCTION_DIR}
+COPY ./prisma/ ${FUNCTION_DIR}/prisma/
 
 RUN npm install
 RUN npm install aws-lambda-ric
 RUN cd node_modules/aws-lambda-ric && npm run update-deps && npm run preinstall && npm run postinstall
 
-# Copy other files into the function root directory
-COPY ./src ${FUNCTION_DIR}
+# Copy TS code and config files, and typecheck
+COPY ./src ${FUNCTION_DIR}/src
 COPY ./tsconfig.json ${FUNCTION_DIR}
-COPY ./entrypoint.sh ${FUNCTION_DIR}
 COPY ./playwright.config.ts ${FUNCTION_DIR}
 
 RUN ./node_modules/.bin/tsc
+
+# Copy everything else needed at runtime
+COPY ./entrypoint.sh ${FUNCTION_DIR}
 
 # Add Lambda Runtime Interface Emulator and use a script in the ENTRYPOINT for simpler local runs
 ADD https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie /usr/local/bin/aws-lambda-rie
 RUN chmod 755 /usr/local/bin/aws-lambda-rie
 COPY entrypoint.sh /
 RUN chmod 755 /entrypoint.sh
-ENTRYPOINT [ "/entrypoint.sh", "index.handler"]
+ENTRYPOINT [ "/entrypoint.sh", "src/index.handler"]
