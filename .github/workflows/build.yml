@@ -18,7 +18,7 @@ jobs:
         ./scripts/setup.sh
         docker compose up -d
         npm ci
-        npm run migrate:reset
+        npm run migrate
         npm test
 
   create-and-push-playwright-runner-image:

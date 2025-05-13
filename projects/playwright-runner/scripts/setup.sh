@@ -1,6 +1,6 @@
 # Run migrations
 docker compose up -d --wait
-npm run migrate:reset
+npm run migrate
 docker compose down
 
 # Add the connection string to the .env file read by Prisma for local development
