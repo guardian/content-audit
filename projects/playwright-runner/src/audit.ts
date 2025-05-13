@@ -1,8 +1,6 @@
 import { chromium, devices } from "playwright";
 
-export const handler = async () => {
-  console.log("Handler running");
-
+export const auditPage = async (url: string) => {
   const args = ["--single-process"];
   const assetDir = "/tmp";
 
@@ -48,9 +46,7 @@ export const handler = async () => {
     });
   });
 
-  await page.goto(
-    "https://www.theguardian.com/environment/ng-interactive/2025/mar/12/as-countries-scramble-for-minerals-the-seabed-beckons-will-mining-it-be-a-disaster-visual-explainer"
-  );
+  await page.goto(url);
 
   const waitForPageLoad = async (timeoutMs = 10000) =>
     await page.evaluate(async (timeoutMs) => {
@@ -82,17 +78,18 @@ export const handler = async () => {
 
   await new Promise((res) => setTimeout(res, 1000));
 
-  const takePageScreenshot = async (pageNo: number) => {
+  const takePageScreenshot = (pageNo: number): Promise<Buffer> => {
     const path = `${assetDir}/page-${pageNo}.jpg`;
     console.log(`Taking screenshot for ${path}`);
-    await page.screenshot({ path, type: "jpeg", quality: 50 });
+    return page.screenshot({ path, type: "jpeg", quality: 50 });
   };
 
   const maxScrollHeight = await page.evaluate(() => document.body.scrollHeight);
+  const maxPages = 50;
   let currentScrollPos = 0;
   let pageNo = 1;
   await takePageScreenshot(pageNo);
-  while (currentScrollPos < maxScrollHeight) {
+  while (currentScrollPos < maxScrollHeight && pageNo < maxPages) {
     pageNo++;
     currentScrollPos = await page.evaluate(() => window.scrollY);
     await page.evaluate(
