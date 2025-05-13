@@ -4,6 +4,10 @@ A lambda that runs a web page in [playwright](https://playwright.dev/). It will 
 
 Runs in a Docker image.
 
+## Setup
+
+Run `./scripts/setup.sh` to set up the playwright-runner project.
+
 ## Running locally
 
 The easiest way to work on code locally is likely to run the tests, which do not require a Docker environment to run. They do require a local database, which you can spin up with `docker compose`:
