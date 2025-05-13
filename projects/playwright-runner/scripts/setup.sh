@@ -1,3 +1,8 @@
+# Run migrations
+docker compose up -d --wait
+npm run migrate:reset
+docker compose down
+
 # Add the connection string to the .env file read by Prisma for local development
 SCRIPT_DIR=$(dirname "$(realpath $0)")
 ENV_DIR=$SCRIPT_DIR/../

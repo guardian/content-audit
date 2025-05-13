@@ -15,8 +15,8 @@ jobs:
     - name: Run tests
       working-directory: projects/playwright-runner
       run: |
-        docker compose up -d
         ./scripts/setup.sh
+        docker compose up -d
         npm ci
         npm run migrate:reset
         npm test
