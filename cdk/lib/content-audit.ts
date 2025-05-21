@@ -290,8 +290,8 @@ export class ContentAudit extends GuStack {
 				userData: new GuUserData(this, {
 					app,
 					distributable: {
-						fileName: 'startup.sh',
-						executionStatement: `bash /${app}/startup.sh ${dbBastionASGName} ${region}`,
+						fileName: 'cdk/startup.sh',
+						executionStatement: `bash /${app}/cdk/startup.sh ${dbBastionASGName} ${region}`,
 					},
 				}).userData,
 				imageRecipe: 'investigations-lurch-bastion'

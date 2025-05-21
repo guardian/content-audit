@@ -2115,13 +2115,13 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
                 "",
                 [
                   "#!/bin/bash
-mkdir -p $(dirname '/content-audit/startup.sh')
+mkdir -p $(dirname '/content-audit/cdk/startup.sh')
 aws s3 cp 's3://",
                   {
                     "Ref": "DistributionBucketName",
                   },
-                  "/content-api/TEST/content-audit/startup.sh' '/content-audit/startup.sh'
-bash /content-audit/startup.sh content-audit-bastion-TEST eu-west-1",
+                  "/content-api/TEST/content-audit/cdk/startup.sh' '/content-audit/cdk/startup.sh'
+bash /content-audit/cdk/startup.sh content-audit-bastion-TEST eu-west-1",
                 ],
               ],
             },
