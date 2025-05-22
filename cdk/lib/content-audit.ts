@@ -294,7 +294,7 @@ export class ContentAudit extends GuStack {
 						executionStatement: `bash /${app}/cdk/startup.sh ${dbBastionASGName} ${region}`,
 					},
 				}).userData,
-				imageRecipe: 'investigations-lurch-bastion'
+				imageRecipe: 'rds-bastion-jammy',
 			},
 		);
 
