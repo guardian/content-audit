@@ -9,8 +9,8 @@ import {
 	GuGithubActionsRole,
 	GuPolicy,
 } from '@guardian/cdk/lib/constructs/iam';
-import { Duration, RemovalPolicy, type App } from 'aws-cdk-lib';
-import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
+import { RemovalPolicy, type App } from 'aws-cdk-lib';
+// import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
 import { GuDatabaseInstance } from '@guardian/cdk/lib/constructs/rds';
 import {
 	GuAutoScalingGroup,
@@ -18,7 +18,7 @@ import {
 } from '@guardian/cdk/lib/constructs/autoscaling';
 import {
 	Port,
-	Subnet,
+	// Subnet,
 	SubnetType as AWSSubnetType,
 	Vpc,
 	InstanceType,
@@ -32,11 +32,11 @@ import {
 } from 'aws-cdk-lib/aws-ecr';
 import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Key } from 'aws-cdk-lib/aws-kms';
-import {
-	Architecture,
-	DockerImageCode,
-	DockerImageFunction,
-} from 'aws-cdk-lib/aws-lambda';
+// import {
+// 	Architecture,
+// 	DockerImageCode,
+// 	DockerImageFunction,
+// } from 'aws-cdk-lib/aws-lambda';
 import {
 	Credentials,
 	DatabaseInstanceEngine,
@@ -58,9 +58,9 @@ export class ContentAudit extends GuStack {
 		const app = this.app;
 		const region = 'eu-west-1';
 
-		const imageTag = new GuParameter(this, 'ImageTag', {
-			description: 'The docker image tag to use. Useful when cloudforming manually - in CI, this is set by BUILD_NUMBER',
-		});
+		// const imageTag = new GuParameter(this, 'ImageTag', {
+		// 	description: 'The docker image tag to use. Useful when cloudforming manually - in CI, this is set by BUILD_NUMBER',
+		// });
 
 		const vpcId = new GuParameter(this, 'VpcParam', {
 			fromSSM: true,
@@ -82,9 +82,9 @@ export class ContentAudit extends GuStack {
 			description: 'Public subnets of the deployment VPC',
 		});
 
-		const privateSubnets = privateSubnetIds.valueAsList.map((id, ctr) =>
-			Subnet.fromSubnetId(this, `private${ctr}`, id),
-		);
+		// const privateSubnets = privateSubnetIds.valueAsList.map((id, ctr) =>
+		// 	Subnet.fromSubnetId(this, `private${ctr}`, id),
+		// );
 
 		const vpc = Vpc.fromVpcAttributes(this, 'Vpc', {
 			vpcId: vpcId.valueAsString,
@@ -170,7 +170,7 @@ export class ContentAudit extends GuStack {
 			],
 		});
 
-		const tagOrDigest = process.env['BUILD_NUMBER'] ?? imageTag.valueAsString;
+		// const tagOrDigest = process.env['BUILD_NUMBER'] ?? imageTag.valueAsString;
 
 		const dbPort = 5432;
 		const dbUser = 'root';
@@ -227,50 +227,50 @@ export class ContentAudit extends GuStack {
 			securityGroups: [dbAccessSecurityGroup],
 		});
 
-		const dbHostname = dbProxy.endpoint;
+		// const dbHostname = dbProxy.endpoint;
 
-		const playwrightRunnerFunction = new DockerImageFunction(
-			this,
-			'PlaywrightRunnerLambda',
-			{
-				code: DockerImageCode.fromEcr(ecrRepo, { tagOrDigest }),
-				functionName: 'playwright-runner',
-				memorySize: 4096,
-				timeout: Duration.seconds(60),
-				architecture: Architecture.ARM_64,
-				vpc,
-				vpcSubnets: {
-					subnets: privateSubnets,
-				},
-				environment: {
-					DATABASE_URL: `postgresql://${dbUser}:${dbSecret.secretValueFromJson("password")}@${dbHostname}:${dbPort}/${this.app}?schema=public`,
-				},
-			},
-		);
+		// const playwrightRunnerFunction = new DockerImageFunction(
+		// 	this,
+		// 	'PlaywrightRunnerLambda',
+		// 	{
+		// 		code: DockerImageCode.fromEcr(ecrRepo, { tagOrDigest }),
+		// 		functionName: 'playwright-runner',
+		// 		memorySize: 4096,
+		// 		timeout: Duration.seconds(60),
+		// 		architecture: Architecture.ARM_64,
+		// 		vpc,
+		// 		vpcSubnets: {
+		// 			subnets: privateSubnets,
+		// 		},
+		// 		environment: {
+		// 			DATABASE_URL: `postgresql://${dbUser}:${dbSecret.secretValueFromJson("password")}@${dbHostname}:${dbPort}/${this.app}?schema=public`,
+		// 		},
+		// 	},
+		// );
 
-		dbProxy.grantConnect(playwrightRunnerFunction);
+		// dbProxy.grantConnect(playwrightRunnerFunction);
 
-		dbAccessSecurityGroup.connections.allowFrom(
-			playwrightRunnerFunction,
-			Port.tcp(dbPort),
-			'Allow connection from playwright-runner lambda to DB',
-		);
+		// dbAccessSecurityGroup.connections.allowFrom(
+		// 	playwrightRunnerFunction,
+		// 	Port.tcp(dbPort),
+		// 	'Allow connection from playwright-runner lambda to DB',
+		// );
 
-		const api = new LambdaRestApi(this, 'PlaywrightRunnerApi', {
-			handler: playwrightRunnerFunction,
-			apiKeySourceType: ApiKeySourceType.HEADER,
-			defaultMethodOptions: {
-				apiKeyRequired: true,
-			},
-		});
+		// const api = new LambdaRestApi(this, 'PlaywrightRunnerApi', {
+		// 	handler: playwrightRunnerFunction,
+		// 	apiKeySourceType: ApiKeySourceType.HEADER,
+		// 	defaultMethodOptions: {
+		// 		apiKeyRequired: true,
+		// 	},
+		// });
 
-		const usagePlan = api.addUsagePlan('PlaywrightRunnerUsagePlan', {
-			name: 'PlaywrightRunnerUsagePlan',
-		});
+		// const usagePlan = api.addUsagePlan('PlaywrightRunnerUsagePlan', {
+		// 	name: 'PlaywrightRunnerUsagePlan',
+		// });
 
-		usagePlan.addApiStage({
-			stage: api.deploymentStage,
-		});
+		// usagePlan.addApiStage({
+		// 	stage: api.deploymentStage,
+		// });
 
 		const dbBastionASGName = `${app}-bastion-${this.stage}`;
 		const dbBastionASG = new GuAutoScalingGroup(
