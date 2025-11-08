@@ -6,7 +6,7 @@ const datasourceUrl = getEnvOrThrow("DATABASE_URL");
 export const getPrismaClient = () => {
   console.log(`Creating database client for URL ${datasourceUrl}`);
 
-  new PrismaClient({
+  return new PrismaClient({
     log: ["query"],
     datasourceUrl,
   });
