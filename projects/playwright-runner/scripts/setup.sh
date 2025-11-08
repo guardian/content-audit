@@ -1,5 +1,8 @@
+#! /bin/bash
+
 # Run migrations
 docker compose up -d --wait
+npm ci
 npm run migrate
 docker compose down
 
