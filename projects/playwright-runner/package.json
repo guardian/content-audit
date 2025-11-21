@@ -5,9 +5,9 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "run": "node --experimental-strip-types ./src/index.js",
-    "test": "node --experimental-strip-types --test \"**/*.spec.ts\"",
-    "test:watch": "node --experimental-strip-types --test --watch \"**/*.spec.ts\"",
+    "run": "node ./src/index.js",
+    "test": "node --test \"**/*.spec.ts\"",
+    "test:watch": "node --test --watch \"**/*.spec.ts\"",
     "migrate": "prisma migrate deploy",
     "postinstall": "prisma generate"
   },
@@ -22,6 +22,7 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
+    "@aws-sdk/rds-signer": "^3.936.0",
     "@prisma/client": "6.7.0",
     "aws-lambda": "^1.0.7",
     "aws-lambda-ric": "^3.2.1",
@@ -32,6 +33,6 @@
     "node-gyp": "^11.2.0"
   },
   "prisma": {
-		"schema": "./prisma/schema.prisma"
-	}
+    "schema": "./prisma/schema.prisma"
+  }
 }

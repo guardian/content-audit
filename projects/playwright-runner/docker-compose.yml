@@ -7,7 +7,7 @@ services:
         environment:
             - POSTGRES_USER=content-audit
             - POSTGRES_PASSWORD=content-audit
-            - POSTGRES_DB=content-audit
+            - POSTGRES_DB=contentaudit
         volumes:
             - postgres-data:/var/lib/postgresql/data
         command: [ "postgres", "-c", "log_statement=all", "-N", "500", '-c', 'enable_incremental_sort=on']

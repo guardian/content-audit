@@ -14,7 +14,7 @@ import {
 	GuPolicy,
 } from '@guardian/cdk/lib/constructs/iam';
 import { GuDatabaseInstance } from '@guardian/cdk/lib/constructs/rds';
-import {type App, Duration, RemovalPolicy} from 'aws-cdk-lib';
+import { type App, Duration, RemovalPolicy } from 'aws-cdk-lib';
 import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
 import { GroupMetric, GroupMetrics } from 'aws-cdk-lib/aws-autoscaling';
 import {
@@ -59,7 +59,8 @@ export class ContentAudit extends GuStack {
 		const region = 'eu-west-1';
 
 		const imageTag = new GuParameter(this, 'ImageTag', {
-			description: 'The docker image tag to use. Useful when cloudforming manually - in CI, this is set by BUILD_NUMBER',
+			description:
+				'The docker image tag to use. Useful when cloudforming manually - in CI, this is set by BUILD_NUMBER',
 		});
 
 		const vpcId = new GuParameter(this, 'VpcParam', {
@@ -187,9 +188,10 @@ export class ContentAudit extends GuStack {
 			Port.tcp(dbPort),
 		);
 
+		const databaseName = 'contentaudit';
 		const db = new GuDatabaseInstance(this, 'RuleManagerRDS', {
-			app: app,
-			databaseName: `contentaudit`, // Only alphanumeric characters :'(
+			app,
+			databaseName,
 			vpc,
 			vpcSubnets: { subnetType: AWSSubnetType.PRIVATE_WITH_EGRESS },
 			allocatedStorage: 50,
@@ -203,7 +205,8 @@ export class ContentAudit extends GuStack {
 			instanceType: 'db.t4g.micro',
 			instanceIdentifier: `${app}-db-${this.stage}`,
 			credentials: Credentials.fromGeneratedSecret(dbUser, {
-				secretName: `/${this.stage}/${this.stack}/${app}-credentials-7eb1`,
+				secretName: `/${this.stage}/${this.stack}/${app}-credentials-f3b0`,
+				excludeCharacters: ',= %+~`#$&*()|[]{}:;<>?!\'/@"\\',
 			}),
 			multiAz: this.stage === 'PROD',
 			port: dbPort,
@@ -218,13 +221,11 @@ export class ContentAudit extends GuStack {
 		const dbSecret = db.secret!;
 
 		const dbProxy = db.addProxy('DatabaseProxy', {
-			dbProxyName: `${app}-proxy-${this.stage}`,
+			dbProxyName: `${app}-proxy-${this.stage}-fb45`,
 			vpc,
-			vpcSubnets: { subnetType: AWSSubnetType.PUBLIC },
 			secrets: [dbSecret],
 			iamAuth: true,
 			requireTLS: true,
-			securityGroups: [dbAccessSecurityGroup],
 		});
 
 		const dbHostname = dbProxy.endpoint;
@@ -243,7 +244,10 @@ export class ContentAudit extends GuStack {
 					subnets: privateSubnets,
 				},
 				environment: {
-					DATABASE_URL: `postgresql://${dbUser}:${dbSecret.secretValueFromJson("password")}@${dbHostname}:${dbPort}/${this.app}?schema=public`,
+					DB_USER: dbUser,
+					DB_HOST: dbHostname,
+					DB_NAME: databaseName,
+					DB_PORT: dbPort.toString(),
 				},
 			},
 		);
@@ -273,30 +277,26 @@ export class ContentAudit extends GuStack {
 		});
 
 		const dbBastionASGName = `${app}-bastion-${this.stage}`;
-		const dbBastionASG = new GuAutoScalingGroup(
-			this,
-			'DatabaseBastionASG',
-			{
-				vpc,
+		const dbBastionASG = new GuAutoScalingGroup(this, 'DatabaseBastionASG', {
+			vpc,
+			app,
+			autoScalingGroupName: dbBastionASGName,
+			instanceType: InstanceType.of(InstanceClass.T4G, InstanceSize.NANO),
+			groupMetrics: [new GroupMetrics(GroupMetric.IN_SERVICE_INSTANCES)],
+			allowAllOutbound: false,
+			minimumInstances: 0,
+			maximumInstances: 1,
+			additionalSecurityGroups: [dbAccessSecurityGroup],
+			imageId: new GuAmiParameter(this, { app }),
+			userData: new GuUserData(this, {
 				app,
-				autoScalingGroupName: dbBastionASGName,
-				instanceType: InstanceType.of(InstanceClass.T4G, InstanceSize.NANO),
-				groupMetrics: [new GroupMetrics(GroupMetric.IN_SERVICE_INSTANCES)],
-				allowAllOutbound: false,
-				minimumInstances: 0,
-				maximumInstances: 1,
-				additionalSecurityGroups: [dbAccessSecurityGroup],
-				imageId: new GuAmiParameter(this, { app }),
-				userData: new GuUserData(this, {
-					app,
-					distributable: {
-						fileName: 'cdk/startup.sh',
-						executionStatement: `bash /${app}/cdk/startup.sh ${dbBastionASGName} ${region}`,
-					},
-				}).userData,
-				imageRecipe: 'rds-bastion-jammy',
-			},
-		);
+				distributable: {
+					fileName: 'cdk/startup.sh',
+					executionStatement: `bash /${app}/cdk/startup.sh ${dbBastionASGName} ${region}`,
+				},
+			}).userData,
+			imageRecipe: 'rds-bastion-jammy',
+		});
 
 		dbProxy.grantConnect(dbBastionASG);
 		dbBastionASG.addToRolePolicy(
