@@ -21,13 +21,15 @@ test("handler", async () => {
       stageVariables: null,
     } as APIGatewayProxyEvent);
 
+  const { client: prismaClient } = await getPrismaClient();
+
   await it("should return a 500 if the audit fails", async () => {
     const errorMessage = "Audit failed";
     const handler = createHandler(
       mock.fn(() => {
         throw new Error(errorMessage);
       }),
-      getPrismaClient()
+      prismaClient
     );
 
     const response = await handler(
@@ -48,7 +50,7 @@ test("handler", async () => {
   });
 
   await it("should return a 400 given unparseable JSON as input", async () => {
-    const handler = createHandler(mock.fn(), getPrismaClient());
+    const handler = createHandler(mock.fn(), prismaClient);
 
     const response = await handler(
       getRequest("asdf"),
@@ -68,7 +70,7 @@ test("handler", async () => {
   });
 
   await it("should return a 400 given an incorrect payload as input", async () => {
-    const handler = createHandler(mock.fn(), getPrismaClient());
+    const handler = createHandler(mock.fn(), prismaClient);
 
     const response = await handler(
       getRequest(JSON.stringify({ incorrect: "input" })),
@@ -93,7 +95,7 @@ test("handler", async () => {
   });
 
   await it("should return a 200 if the audit succeeds", async () => {
-    const handler = createHandler(mock.fn(), getPrismaClient());
+    const handler = createHandler(mock.fn(), prismaClient);
 
     const response = await handler(
       getRequest(JSON.stringify({ url: "example.com" })),

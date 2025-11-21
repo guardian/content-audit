@@ -1,9 +1,8 @@
-import { Signer, SignerConfig } from "@aws-sdk/rds-signer";
+import * as RDS from "@aws-sdk/rds-signer";
 import { Prisma, PrismaClient } from "../../prisma/client/index.js";
-import { dbHost, dbUser } from "./env.ts";
+import { dbHost, dbName, dbPassword, dbUser } from "./env.ts";
 import {
   dbMaxConnections,
-  dbName,
   dbPort,
   dbQueryTimeout,
   dbSchema,
@@ -31,7 +30,6 @@ export const getPrismaClient = async () => {
   };
 };
 
-//...
 async function generateClientOptions(): Promise<{
   prismaOptions: Prisma.PrismaClientOptions;
   expiry?: Promise<void>;
@@ -39,7 +37,7 @@ async function generateClientOptions(): Promise<{
   let password: string;
   let expiry: Promise<void> | undefined;
 
-  password = await generateRdsPassword({
+  password = dbPassword ? dbPassword : await generateRdsPassword({
     region,
     hostname: dbHost,
     username: dbUser,
@@ -52,7 +50,6 @@ async function generateClientOptions(): Promise<{
   url.username = dbUser;
   url.password = password;
   url.search = new URLSearchParams({
-    schema: dbSchema,
     connection_timeout: dbQueryTimeout.toString(),
     socket_timeout: dbQueryTimeout.toString(),
     connection_limit: dbMaxConnections.toString(),
@@ -70,7 +67,7 @@ async function generateClientOptions(): Promise<{
   };
 }
 
-const generateRdsPassword = (options: SignerConfig): Promise<string> => {
-  const signer = new Signer(options);
+const generateRdsPassword = (options: RDS.SignerConfig): Promise<string> => {
+  const signer = new RDS.Signer(options);
   return signer.getAuthToken();
 };

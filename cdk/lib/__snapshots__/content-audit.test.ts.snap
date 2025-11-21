@@ -99,7 +99,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     },
   },
   "Resources": {
-    "ContentAuditRuleManagerRDSContentauditSecretA370AA6D3fdaad7efa858a3daf9490cf0a702aeb": {
+    "ContentAuditRuleManagerRDSContentauditSecretA370AA6D2d443b11c74f5499d797acd7bf0b5040": {
       "DeletionPolicy": "Delete",
       "Properties": {
         "Description": {
@@ -114,12 +114,12 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           ],
         },
         "GenerateSecretString": {
-          "ExcludeCharacters": " %+~\`#$&*()|[]{}:;<>?!'/@"\\",
+          "ExcludeCharacters": ",= %+~\`#$&*()|[]{}:;<>?!'/@"\\",
           "GenerateStringKey": "password",
           "PasswordLength": 30,
           "SecretStringTemplate": "{"username":"root"}",
         },
-        "Name": "/TEST/content-api/content-audit-credentials-7eb1",
+        "Name": "/TEST/content-api/content-audit-credentials-f3b0",
         "Tags": [
           {
             "Key": "App",
@@ -153,6 +153,15 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     "DBSecurityGroupContentaudit7865E2CC": {
       "Properties": {
         "GroupDescription": "Allow connection from playwright-runner lambda to DB",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "255.255.255.255/32",
+            "Description": "Disallow all traffic",
+            "FromPort": 252,
+            "IpProtocol": "icmp",
+            "ToPort": 86,
+          },
+        ],
         "Tags": [
           {
             "Key": "App",
@@ -202,37 +211,6 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::EC2::SecurityGroupIngress",
     },
-    "DBSecurityGroupContentauditfromContentAuditDBSecurityGroupContentauditF87D4043IndirectPort3DF62DF6": {
-      "Properties": {
-        "Description": "Allow connections to the database Instance from the Proxy",
-        "FromPort": {
-          "Fn::GetAtt": [
-            "RuleManagerRDSContentauditE35AF1B1",
-            "Endpoint.Port",
-          ],
-        },
-        "GroupId": {
-          "Fn::GetAtt": [
-            "DBSecurityGroupContentaudit7865E2CC",
-            "GroupId",
-          ],
-        },
-        "IpProtocol": "tcp",
-        "SourceSecurityGroupId": {
-          "Fn::GetAtt": [
-            "DBSecurityGroupContentaudit7865E2CC",
-            "GroupId",
-          ],
-        },
-        "ToPort": {
-          "Fn::GetAtt": [
-            "RuleManagerRDSContentauditE35AF1B1",
-            "Endpoint.Port",
-          ],
-        },
-      },
-      "Type": "AWS::EC2::SecurityGroupIngress",
-    },
     "DBSecurityGroupContentauditfromContentAuditPlaywrightRunnerLambdaSecurityGroup1F8D33FF543290250698": {
       "Properties": {
         "Description": "Allow connection from playwright-runner lambda to DB",
@@ -254,15 +232,9 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::EC2::SecurityGroupIngress",
     },
-    "DBSecurityGroupContentaudittoContentAuditDBSecurityGroupContentauditF87D4043IndirectPort83F31B9C": {
+    "DBSecurityGroupContentauditfromContentAuditRuleManagerRDSContentauditDatabaseProxyProxySecurityGroup9BDDC7B2IndirectPort3B15ABBC": {
       "Properties": {
         "Description": "Allow connections to the database Instance from the Proxy",
-        "DestinationSecurityGroupId": {
-          "Fn::GetAtt": [
-            "DBSecurityGroupContentaudit7865E2CC",
-            "GroupId",
-          ],
-        },
         "FromPort": {
           "Fn::GetAtt": [
             "RuleManagerRDSContentauditE35AF1B1",
@@ -276,6 +248,12 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           ],
         },
         "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "RuleManagerRDSContentauditDatabaseProxyProxySecurityGroup1DB7BA0E",
+            "GroupId",
+          ],
+        },
         "ToPort": {
           "Fn::GetAtt": [
             "RuleManagerRDSContentauditE35AF1B1",
@@ -283,7 +261,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           ],
         },
       },
-      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Type": "AWS::EC2::SecurityGroupIngress",
     },
     "DatabaseBastionASGContentauditASG906585FE": {
       "Properties": {
@@ -1281,25 +1259,15 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         },
         "Environment": {
           "Variables": {
-            "DATABASE_URL": {
-              "Fn::Join": [
-                "",
-                [
-                  "postgresql://root:{{resolve:secretsmanager:",
-                  {
-                    "Ref": "RuleManagerRDSContentauditSecretAttachment08AEA541",
-                  },
-                  ":SecretString:password::}}@",
-                  {
-                    "Fn::GetAtt": [
-                      "RuleManagerRDSContentauditDatabaseProxy9B0898FC",
-                      "Endpoint",
-                    ],
-                  },
-                  ":5432/content-audit?schema=public",
-                ],
+            "DB_HOST": {
+              "Fn::GetAtt": [
+                "RuleManagerRDSContentauditDatabaseProxy9B0898FC",
+                "Endpoint",
               ],
             },
+            "DB_NAME": "contentaudit",
+            "DB_PORT": "5432",
+            "DB_USER": "root",
           },
         },
         "FunctionName": "playwright-runner",
@@ -1668,7 +1636,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
             },
           },
         ],
-        "DBProxyName": "content-audit-proxy-TEST",
+        "DBProxyName": "content-audit-proxy-TEST-fb45",
         "EngineFamily": "POSTGRESQL",
         "RequireTLS": true,
         "RoleArn": {
@@ -1706,13 +1674,13 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "VpcSecurityGroupIds": [
           {
             "Fn::GetAtt": [
-              "DBSecurityGroupContentaudit7865E2CC",
+              "RuleManagerRDSContentauditDatabaseProxyProxySecurityGroup1DB7BA0E",
               "GroupId",
             ],
           },
         ],
         "VpcSubnetIds": {
-          "Ref": "PublicSubnetsParam",
+          "Ref": "PrivateSubnetsParam",
         },
       },
       "Type": "AWS::RDS::DBProxy",
@@ -1786,6 +1754,48 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::IAM::Role",
     },
+    "RuleManagerRDSContentauditDatabaseProxyProxySecurityGroup1DB7BA0E": {
+      "Properties": {
+        "GroupDescription": "SecurityGroup for Database Proxy",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "VpcId": {
+          "Ref": "VpcParam",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
     "RuleManagerRDSContentauditDatabaseProxyProxyTargetGroup2718BDBF": {
       "Properties": {
         "ConnectionPoolConfigurationInfo": {},
@@ -1825,7 +1835,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
             [
               "{{resolve:secretsmanager:",
               {
-                "Ref": "ContentAuditRuleManagerRDSContentauditSecretA370AA6D3fdaad7efa858a3daf9490cf0a702aeb",
+                "Ref": "ContentAuditRuleManagerRDSContentauditSecretA370AA6D2d443b11c74f5499d797acd7bf0b5040",
               },
               ":SecretString:password::}}",
             ],
@@ -1879,7 +1889,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     "RuleManagerRDSContentauditSecretAttachment08AEA541": {
       "Properties": {
         "SecretId": {
-          "Ref": "ContentAuditRuleManagerRDSContentauditSecretA370AA6D3fdaad7efa858a3daf9490cf0a702aeb",
+          "Ref": "ContentAuditRuleManagerRDSContentauditSecretA370AA6D2d443b11c74f5499d797acd7bf0b5040",
         },
         "TargetId": {
           "Ref": "RuleManagerRDSContentauditE35AF1B1",

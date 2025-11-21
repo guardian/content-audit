@@ -14,7 +14,7 @@ LOCAL_TEST_HOSTNAME=localhost
 LOCAL_DOCKER_HOSTNAME=host.docker.internal
 
 write_env() {
-    echo "DATABASE_URL=postgresql://content-audit:content-audit@$1:5432/content-audit?schema=public" > "$2"
+    echo "DATABASE_URL=postgresql://content-audit:content-audit@$1:5432/contentaudit?schema=public" > "$2"
 }
 
 write_env $LOCAL_TEST_HOSTNAME $ENV_DIR/.env
