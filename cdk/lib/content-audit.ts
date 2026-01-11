@@ -14,7 +14,7 @@ import {
 	GuPolicy,
 } from '@guardian/cdk/lib/constructs/iam';
 import { GuDatabaseInstance } from '@guardian/cdk/lib/constructs/rds';
-import { type App, Duration, RemovalPolicy } from 'aws-cdk-lib';
+import { type App, Duration, Fn, RemovalPolicy } from 'aws-cdk-lib';
 import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
 import { GroupMetric, GroupMetrics } from 'aws-cdk-lib/aws-autoscaling';
 import {
@@ -22,7 +22,9 @@ import {
 	InstanceClass,
 	InstanceSize,
 	InstanceType,
+	Peer,
 	Port,
+	SecurityGroup,
 	Subnet,
 	Vpc,
 } from 'aws-cdk-lib/aws-ec2';
@@ -39,6 +41,7 @@ import {
 	DockerImageFunction,
 } from 'aws-cdk-lib/aws-lambda';
 import {
+	CfnDBProxy,
 	Credentials,
 	DatabaseInstanceEngine,
 	PostgresEngineVersion,
@@ -175,17 +178,23 @@ export class ContentAudit extends GuStack {
 
 		const dbPort = 5432;
 		const dbUser = 'root';
-
+		const dbSecurityGroupName = `ContentAuditDatabaseSecurityGroup${this.stage}`;
 		const dbAccessSecurityGroup = new GuSecurityGroup(this, 'DBSecurityGroup', {
-			app: app,
+			app,
 			description: 'Allow connection from playwright-runner lambda to DB',
 			vpc,
-			allowAllOutbound: false,
+			securityGroupName: dbSecurityGroupName
 		});
 
 		dbAccessSecurityGroup.addIngressRule(
 			dbAccessSecurityGroup,
 			Port.tcp(dbPort),
+		);
+
+		dbAccessSecurityGroup.addIngressRule(
+			Peer.ipv4('77.91.248.0/21'),
+			Port.tcp(22),
+			'Allow SSH for tunneling purposes when this security group is reused for database jump host.',
 		);
 
 		const databaseName = 'contentaudit';
@@ -227,6 +236,17 @@ export class ContentAudit extends GuStack {
 			iamAuth: true,
 			requireTLS: true,
 		});
+		const cfnDatabaseProxy = dbProxy.node.defaultChild as CfnDBProxy;
+
+		SecurityGroup.fromSecurityGroupId(
+			this,
+			'databaseProxySecurityGroup',
+			Fn.select(0, cfnDatabaseProxy!.vpcSecurityGroupIds!),
+		).addIngressRule(
+			Peer.securityGroupId(dbAccessSecurityGroup.securityGroupId),
+			Port.tcp(dbPort),
+			`Allow ${dbSecurityGroupName} to connect to the ${dbProxy.dbProxyName}`,
+		);
 
 		const dbHostname = dbProxy.endpoint;
 
@@ -240,6 +260,7 @@ export class ContentAudit extends GuStack {
 				timeout: Duration.seconds(60),
 				architecture: Architecture.ARM_64,
 				vpc,
+				securityGroups: [dbAccessSecurityGroup],
 				vpcSubnets: {
 					subnets: privateSubnets,
 				},
@@ -253,12 +274,6 @@ export class ContentAudit extends GuStack {
 		);
 
 		dbProxy.grantConnect(playwrightRunnerFunction);
-
-		dbAccessSecurityGroup.connections.allowFrom(
-			playwrightRunnerFunction,
-			Port.tcp(dbPort),
-			'Allow connection from playwright-runner lambda to DB',
-		);
 
 		const api = new LambdaRestApi(this, 'PlaywrightRunnerApi', {
 			handler: playwrightRunnerFunction,

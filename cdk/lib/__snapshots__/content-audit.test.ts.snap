@@ -153,13 +153,21 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     "DBSecurityGroupContentaudit7865E2CC": {
       "Properties": {
         "GroupDescription": "Allow connection from playwright-runner lambda to DB",
+        "GroupName": "ContentAuditDatabaseSecurityGroupTEST",
         "SecurityGroupEgress": [
           {
-            "CidrIp": "255.255.255.255/32",
-            "Description": "Disallow all traffic",
-            "FromPort": 252,
-            "IpProtocol": "icmp",
-            "ToPort": 86,
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "77.91.248.0/21",
+            "Description": "Allow SSH for tunneling purposes when this security group is reused for database jump host.",
+            "FromPort": 22,
+            "IpProtocol": "tcp",
+            "ToPort": 22,
           },
         ],
         "Tags": [
@@ -204,27 +212,6 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "SourceSecurityGroupId": {
           "Fn::GetAtt": [
             "DBSecurityGroupContentaudit7865E2CC",
-            "GroupId",
-          ],
-        },
-        "ToPort": 5432,
-      },
-      "Type": "AWS::EC2::SecurityGroupIngress",
-    },
-    "DBSecurityGroupContentauditfromContentAuditPlaywrightRunnerLambdaSecurityGroup1F8D33FF543290250698": {
-      "Properties": {
-        "Description": "Allow connection from playwright-runner lambda to DB",
-        "FromPort": 5432,
-        "GroupId": {
-          "Fn::GetAtt": [
-            "DBSecurityGroupContentaudit7865E2CC",
-            "GroupId",
-          ],
-        },
-        "IpProtocol": "tcp",
-        "SourceSecurityGroupId": {
-          "Fn::GetAtt": [
-            "PlaywrightRunnerLambdaSecurityGroupB489F827",
             "GroupId",
           ],
         },
@@ -1306,7 +1293,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           "SecurityGroupIds": [
             {
               "Fn::GetAtt": [
-                "PlaywrightRunnerLambdaSecurityGroupB489F827",
+                "DBSecurityGroupContentaudit7865E2CC",
                 "GroupId",
               ],
             },
@@ -1317,44 +1304,6 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         },
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "PlaywrightRunnerLambdaSecurityGroupB489F827": {
-      "Properties": {
-        "GroupDescription": "Automatic security group for Lambda Function ContentAuditPlaywrightRunnerLambda6A4309FA",
-        "SecurityGroupEgress": [
-          {
-            "CidrIp": "0.0.0.0/0",
-            "Description": "Allow all outbound traffic by default",
-            "IpProtocol": "-1",
-          },
-        ],
-        "Tags": [
-          {
-            "Key": "App",
-            "Value": "content-audit",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/content-audit",
-          },
-          {
-            "Key": "Stack",
-            "Value": "content-api",
-          },
-          {
-            "Key": "Stage",
-            "Value": "TEST",
-          },
-        ],
-        "VpcId": {
-          "Ref": "VpcParam",
-        },
-      },
-      "Type": "AWS::EC2::SecurityGroup",
     },
     "PlaywrightRunnerLambdaServiceRole9CE1E928": {
       "Properties": {
@@ -2180,6 +2129,44 @@ bash /content-audit/cdk/startup.sh content-audit-bastion-TEST eu-west-1",
         ],
       },
       "Type": "AWS::IAM::InstanceProfile",
+    },
+    "databaseProxySecurityGroupfromIndirectPeer5432453AB7EA": {
+      "Properties": {
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "Allow ContentAuditDatabaseSecurityGroupTEST to connect to the ",
+              {
+                "Ref": "RuleManagerRDSContentauditDatabaseProxy9B0898FC",
+              },
+            ],
+          ],
+        },
+        "FromPort": 5432,
+        "GroupId": {
+          "Fn::Select": [
+            0,
+            [
+              {
+                "Fn::GetAtt": [
+                  "RuleManagerRDSContentauditDatabaseProxyProxySecurityGroup1DB7BA0E",
+                  "GroupId",
+                ],
+              },
+            ],
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "DBSecurityGroupContentaudit7865E2CC",
+            "GroupId",
+          ],
+        },
+        "ToPort": 5432,
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
     },
   },
 }
