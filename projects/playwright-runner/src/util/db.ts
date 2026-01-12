@@ -1,5 +1,5 @@
 import * as RDS from "@aws-sdk/rds-signer";
-import { Prisma, PrismaClient } from "../../prisma/client/client.ts";
+import { PrismaClient } from "../../prisma/client/client.ts";
 import {
   dbMaxConnections,
   dbQueryTimeout,
@@ -11,7 +11,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 type DBCredentials = {
   dbHost: string;
   dbName: string;
-  dbPassword: string;
+  dbPassword?: string;
   dbUser: string;
   dbPort: number;
 };

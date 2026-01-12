@@ -3,6 +3,7 @@ import { createHandler } from "./handler.ts";
 import type { APIGatewayProxyEvent, Context } from "aws-lambda";
 import assert from "node:assert";
 import { getPrismaClient } from "./util/db.ts";
+import { dbHost, dbName, dbPort, dbUser } from "./util/env.ts";
 
 test("handler", async () => {
   const mockContext = {} as Context;
@@ -21,7 +22,13 @@ test("handler", async () => {
       stageVariables: null,
     } as APIGatewayProxyEvent);
 
-  const { client: prismaClient } = await getPrismaClient();
+  const { client: prismaClient } = await getPrismaClient({
+    dbHost,
+    dbName,
+    dbPassword: "content-audit",
+    dbPort,
+    dbUser,
+  });
 
   await it("should return a 500 if the audit fails", async () => {
     const errorMessage = "Audit failed";

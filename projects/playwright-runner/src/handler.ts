@@ -1,7 +1,7 @@
 import type { APIGatewayProxyEvent, Handler } from "aws-lambda";
 import { AuditPageRequestSchema } from "./model/request.ts";
 import { errorResponse, okResponse } from "./util/lambda.ts";
-import { type PrismaClient } from "@prisma/client";
+import { type PrismaClient } from "../prisma/client/client.ts";
 
 /**
  * Create the lambda handler. Dependencies are injected for testing purposes.
