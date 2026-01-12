@@ -60,4 +60,4 @@ const password = await generateRdsPassword({
   profile: "capi",
 });
 
-console.log(password);
+process.stdout.write(password);
