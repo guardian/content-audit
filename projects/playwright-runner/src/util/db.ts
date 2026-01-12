@@ -45,10 +45,8 @@ async function generateConnectionUrl({
   adapter: PrismaPg;
   expiry?: Promise<void>;
 }> {
-  let password: string;
-  let expiry: Promise<void> | undefined;
-
-  password = dbPassword
+  const expiry = new Promise<void>((res) => setTimeout(res, dbTokenExpirySeconds * 1000));
+  const password = dbPassword
     ? dbPassword
     : await generateRdsPassword({
         region,
@@ -56,8 +54,6 @@ async function generateConnectionUrl({
         username: dbUser,
         port: dbPort,
       });
-
-  expiry = new Promise((res) => setTimeout(res, dbTokenExpirySeconds * 1000));
 
   const url = new URL(`postgresql://${dbHost}:${dbPort}/${dbName}`);
   url.username = dbUser;
@@ -67,6 +63,10 @@ async function generateConnectionUrl({
     socket_timeout: dbQueryTimeout.toString(),
     connection_limit: dbMaxConnections.toString(),
   }).toString();
+
+  console.log({password});
+
+  console.log(url.toString());
 
   const adapter = new PrismaPg({
     connectionString: url.toString(),
