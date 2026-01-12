@@ -4,7 +4,6 @@ import {
   dbMaxConnections,
   dbPort,
   dbQueryTimeout,
-  dbSchema,
   dbTokenExpirySeconds,
   region,
 } from "./constants.ts";
@@ -27,11 +26,15 @@ export const getPrismaClient = async (dbCredentials: DBCredentials) => {
     )}`
   );
 
+  const client = new PrismaClient({
+    log: ["query"],
+    ...prismaOptions,
+  });
+
+  console.log(`Client created`);
+
   return {
-    client: new PrismaClient({
-      log: ["query"],
-      ...prismaOptions,
-    }),
+    client,
     expiry,
   };
 };
