@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "run": "node ./scripts/run-locally.ts",
+    "run": "DB_HOST=localhost DB_USER=content-audit DB_PASSWORD=content-audit DB_NAME=contentaudit DB_PORT=5432 node ./scripts/run-locally.ts",
     "test": "DB_HOST=localhost DB_USER=content-audit DB_PASSWORD=content-audit DB_NAME=contentaudit DB_PORT=5432 node --test --test-force-exit \"**/*.spec.ts\"",
     "test:watch": "node --test --watch \"**/*.spec.ts\"",
     "migrate": "prisma migrate deploy",

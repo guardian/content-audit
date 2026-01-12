@@ -20,3 +20,9 @@ export const dbHost = getEnvOrThrow("DB_HOST");
 export const dbUser = getEnvOrThrow("DB_USER");
 export const dbPort = getEnvNumberOrThrow("DB_PORT");
 export const dbName = getEnvOrThrow("DB_NAME");
+
+// The DB password is optional:
+// - locally, we supply it via an env var
+// - for tests, we supply it programmatically
+// - in AWS, we generate it via the IAM signer
+export const dbPassword = process.env["DB_PASSWORD"];

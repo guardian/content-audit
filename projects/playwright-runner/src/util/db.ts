@@ -11,22 +11,23 @@ import { PrismaPg } from "@prisma/adapter-pg";
 type DBCredentials = {
   dbHost: string;
   dbName: string;
-  dbPassword?: string;
+  dbPassword?: string | undefined;
   dbUser: string;
   dbPort: number;
 };
 
 export const getPrismaClient = async (dbCredentials: DBCredentials) => {
+  console.log("Generating connection url");
   const { adapter, expiry } = await generateConnectionUrl(dbCredentials);
 
-  console.log(`Creating database client with expiry ${expiry}`);
+  console.log("Creating database client");
 
   const client = new PrismaClient({
     log: ["query"],
     adapter,
   });
 
-  console.log(`Client created`);
+  console.log("Client created");
 
   return {
     client,
