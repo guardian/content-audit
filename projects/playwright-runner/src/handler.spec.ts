@@ -5,7 +5,7 @@ import assert from "node:assert";
 import { getPrismaClient } from "./util/db.ts";
 import { dbHost, dbName, dbPort, dbUser } from "./util/env.ts";
 
-test("handler", async () => {
+await test("handler", async () => {
   const mockContext = {} as Context;
   const mockCallback = () => {};
   const getRequest = (body: any): APIGatewayProxyEvent =>
