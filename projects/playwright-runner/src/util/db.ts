@@ -1,6 +1,5 @@
 import * as RDS from "@aws-sdk/rds-signer";
 import { Prisma, PrismaClient } from "../../prisma/client/index.js";
-import { dbHost, dbName, dbPassword, dbUser } from "./env.ts";
 import {
   dbMaxConnections,
   dbPort,
@@ -10,8 +9,15 @@ import {
   region,
 } from "./constants.ts";
 
-export const getPrismaClient = async () => {
-  const { prismaOptions, expiry } = await generateClientOptions();
+type DBCredentials = {
+  dbHost: string;
+  dbName: string;
+  dbPassword: string;
+  dbUser: string;
+};
+
+export const getPrismaClient = async (dbCredentials: DBCredentials) => {
+  const { prismaOptions, expiry } = await generateClientOptions(dbCredentials);
 
   console.log(
     `Creating database client with options ${JSON.stringify(
@@ -30,19 +36,26 @@ export const getPrismaClient = async () => {
   };
 };
 
-async function generateClientOptions(): Promise<{
+async function generateClientOptions({
+  dbHost,
+  dbName,
+  dbPassword,
+  dbUser,
+}: DBCredentials): Promise<{
   prismaOptions: Prisma.PrismaClientOptions;
   expiry?: Promise<void>;
 }> {
   let password: string;
   let expiry: Promise<void> | undefined;
 
-  password = dbPassword ? dbPassword : await generateRdsPassword({
-    region,
-    hostname: dbHost,
-    username: dbUser,
-    port: dbPort,
-  });
+  password = dbPassword
+    ? dbPassword
+    : await generateRdsPassword({
+        region,
+        hostname: dbHost,
+        username: dbUser,
+        port: dbPort,
+      });
 
   expiry = new Promise((res) => setTimeout(res, dbTokenExpirySeconds * 1000));
 
@@ -67,7 +80,9 @@ async function generateClientOptions(): Promise<{
   };
 }
 
-const generateRdsPassword = (options: RDS.SignerConfig): Promise<string> => {
+export const generateRdsPassword = (
+  options: RDS.SignerConfig
+): Promise<string> => {
   const signer = new RDS.Signer(options);
   return signer.getAuthToken();
 };

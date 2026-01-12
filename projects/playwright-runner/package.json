@@ -9,12 +9,15 @@
     "test": "DB_HOST=localhost DB_USER=content-audit DB_PASSWORD=content-audit DB_NAME=contentaudit DB_PORT=5432 node --test \"**/*.spec.ts\"",
     "test:watch": "node --test --watch \"**/*.spec.ts\"",
     "migrate": "prisma migrate deploy",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "rds-tunnel": "sh -c 'ssm ssh -t content-audit,CODE --profile capi --tunnel 7658:$(node ./scripts/get-rds-proxy-endpoint.ts --stage CODE):5432' && echo \"\npassword:\n\" && node ./scripts/generate-rds-password.ts",
+    "stop-rds-tunnel": "kill $(lsof -ti :7658)"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@aws-sdk/client-rds": "^3.966.0",
     "@playwright/test": "^1.51.1",
     "@types/aws-lambda": "^8.10.149",
     "@types/node": "^22.13.10",
