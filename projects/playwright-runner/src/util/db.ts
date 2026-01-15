@@ -78,9 +78,10 @@ async function generateConnectionUrl({
   };
 }
 
-export const generateRdsPassword = (
+export const generateRdsPassword = async (
   options: RDS.SignerConfig
 ): Promise<string> => {
-  const signer = new RDS.Signer(options);
-  return signer.getAuthToken();
+  const signer = new RDS.Signer({ ...options });
+  const token = await signer.getAuthToken();
+  return encodeURIComponent(token);
 };
