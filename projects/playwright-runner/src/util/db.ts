@@ -58,11 +58,6 @@ async function generateConnectionUrl({
   const url = new URL(`postgresql://${dbHost}:${dbPort}/${dbName}`);
   url.username = dbUser;
   url.password = password;
-  url.search = new URLSearchParams({
-    connection_timeout: dbQueryTimeout.toString(),
-    socket_timeout: dbQueryTimeout.toString(),
-    connection_limit: dbMaxConnections.toString(),
-  }).toString();
 
   console.log({password});
 
