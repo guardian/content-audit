@@ -20,7 +20,7 @@ await test("handler", async () => {
       queryStringParameters: null,
       multiValueQueryStringParameters: null,
       stageVariables: null,
-    } as APIGatewayProxyEvent);
+    }) as APIGatewayProxyEvent;
 
   const { client: prismaClient } = await getPrismaClient({
     dbHost,
@@ -28,6 +28,7 @@ await test("handler", async () => {
     dbPassword: "content-audit",
     dbPort,
     dbUser,
+    isLocal: true,
   });
 
   await it("should return a 500 if the audit fails", async () => {
@@ -36,13 +37,13 @@ await test("handler", async () => {
       mock.fn(() => {
         throw new Error(errorMessage);
       }),
-      prismaClient
+      prismaClient,
     );
 
     const response = await handler(
       getRequest(JSON.stringify({ url: "example.com" })),
       mockContext,
-      mockCallback
+      mockCallback,
     );
 
     const expectedReponse = {
@@ -62,7 +63,7 @@ await test("handler", async () => {
     const response = await handler(
       getRequest("asdf"),
       mockContext,
-      mockCallback
+      mockCallback,
     );
 
     const expectedReponse = {
@@ -82,7 +83,7 @@ await test("handler", async () => {
     const response = await handler(
       getRequest(JSON.stringify({ incorrect: "input" })),
       mockContext,
-      mockCallback
+      mockCallback,
     );
 
     const responseBody = JSON.parse(response.body);
@@ -107,7 +108,7 @@ await test("handler", async () => {
     const response = await handler(
       getRequest(JSON.stringify({ url: "example.com" })),
       mockContext,
-      mockCallback
+      mockCallback,
     );
 
     const expectedReponse = {

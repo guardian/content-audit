@@ -13,4 +13,4 @@ DB_HOST="localhost"
 
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"
 
-printf "%s" "$DB_PASSWORD";
+printf "%s" "$DATABASE_URL";

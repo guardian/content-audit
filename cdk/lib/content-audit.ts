@@ -25,7 +25,6 @@ import {
 	Peer,
 	Port,
 	SecurityGroup,
-	Subnet,
 	Vpc,
 } from 'aws-cdk-lib/aws-ec2';
 import {
@@ -85,10 +84,6 @@ export class ContentAudit extends GuStack {
 			default: `/account/vpc/primary/subnets/public`,
 			description: 'Public subnets of the deployment VPC',
 		});
-
-		const privateSubnets = privateSubnetIds.valueAsList.map((id, ctr) =>
-			Subnet.fromSubnetId(this, `private${ctr}`, id),
-		);
 
 		const vpc = Vpc.fromVpcAttributes(this, 'Vpc', {
 			vpcId: vpcId.valueAsString,
@@ -183,19 +178,8 @@ export class ContentAudit extends GuStack {
 			app,
 			description: 'Allow connection from playwright-runner lambda to DB',
 			vpc,
-			securityGroupName: dbSecurityGroupName
+			securityGroupName: dbSecurityGroupName,
 		});
-
-		dbAccessSecurityGroup.addIngressRule(
-			dbAccessSecurityGroup,
-			Port.tcp(dbPort),
-		);
-
-		dbAccessSecurityGroup.addIngressRule(
-			Peer.ipv4('77.91.248.0/21'),
-			Port.tcp(22),
-			'Allow SSH for tunneling purposes when this security group is reused for database jump host.',
-		);
 
 		const databaseName = 'contentaudit';
 		const db = new GuDatabaseInstance(this, 'RuleManagerRDS', {
@@ -220,7 +204,6 @@ export class ContentAudit extends GuStack {
 			multiAz: this.stage === 'PROD',
 			port: dbPort,
 			preferredMaintenanceWindow: 'Mon:06:30-Mon:07:00',
-			securityGroups: [dbAccessSecurityGroup],
 			storageEncrypted: true,
 			storageType: StorageType.GP2,
 			removalPolicy: RemovalPolicy.SNAPSHOT,
@@ -241,7 +224,7 @@ export class ContentAudit extends GuStack {
 		SecurityGroup.fromSecurityGroupId(
 			this,
 			'databaseProxySecurityGroup',
-			Fn.select(0, cfnDatabaseProxy!.vpcSecurityGroupIds!),
+			Fn.select(0, cfnDatabaseProxy.vpcSecurityGroupIds!),
 		).addIngressRule(
 			Peer.securityGroupId(dbAccessSecurityGroup.securityGroupId),
 			Port.tcp(dbPort),
@@ -261,14 +244,13 @@ export class ContentAudit extends GuStack {
 				architecture: Architecture.ARM_64,
 				vpc,
 				securityGroups: [dbAccessSecurityGroup],
-				vpcSubnets: {
-					subnets: privateSubnets,
-				},
 				environment: {
 					DB_USER: dbUser,
 					DB_HOST: dbHostname,
 					DB_NAME: databaseName,
 					DB_PORT: dbPort.toString(),
+					DOCKER_OPTS:
+						'--dns 10.0.0.2 -H tcp://127.0.0.1:4243 -H unix:///var/run/docker.sock -g /mnt/docker',
 				},
 			},
 		);

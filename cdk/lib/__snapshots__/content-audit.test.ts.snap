@@ -161,15 +161,6 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
             "IpProtocol": "-1",
           },
         ],
-        "SecurityGroupIngress": [
-          {
-            "CidrIp": "77.91.248.0/21",
-            "Description": "Allow SSH for tunneling purposes when this security group is reused for database jump host.",
-            "FromPort": 22,
-            "IpProtocol": "tcp",
-            "ToPort": 22,
-          },
-        ],
         "Tags": [
           {
             "Key": "App",
@@ -197,58 +188,6 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         },
       },
       "Type": "AWS::EC2::SecurityGroup",
-    },
-    "DBSecurityGroupContentauditfromContentAuditDBSecurityGroupContentauditF87D40435432647BFA9A": {
-      "Properties": {
-        "Description": "from ContentAuditDBSecurityGroupContentauditF87D4043:5432",
-        "FromPort": 5432,
-        "GroupId": {
-          "Fn::GetAtt": [
-            "DBSecurityGroupContentaudit7865E2CC",
-            "GroupId",
-          ],
-        },
-        "IpProtocol": "tcp",
-        "SourceSecurityGroupId": {
-          "Fn::GetAtt": [
-            "DBSecurityGroupContentaudit7865E2CC",
-            "GroupId",
-          ],
-        },
-        "ToPort": 5432,
-      },
-      "Type": "AWS::EC2::SecurityGroupIngress",
-    },
-    "DBSecurityGroupContentauditfromContentAuditRuleManagerRDSContentauditDatabaseProxyProxySecurityGroup9BDDC7B2IndirectPort3B15ABBC": {
-      "Properties": {
-        "Description": "Allow connections to the database Instance from the Proxy",
-        "FromPort": {
-          "Fn::GetAtt": [
-            "RuleManagerRDSContentauditE35AF1B1",
-            "Endpoint.Port",
-          ],
-        },
-        "GroupId": {
-          "Fn::GetAtt": [
-            "DBSecurityGroupContentaudit7865E2CC",
-            "GroupId",
-          ],
-        },
-        "IpProtocol": "tcp",
-        "SourceSecurityGroupId": {
-          "Fn::GetAtt": [
-            "RuleManagerRDSContentauditDatabaseProxyProxySecurityGroup1DB7BA0E",
-            "GroupId",
-          ],
-        },
-        "ToPort": {
-          "Fn::GetAtt": [
-            "RuleManagerRDSContentauditE35AF1B1",
-            "Endpoint.Port",
-          ],
-        },
-      },
-      "Type": "AWS::EC2::SecurityGroupIngress",
     },
     "DatabaseBastionASGContentauditASG906585FE": {
       "Properties": {
@@ -1255,6 +1194,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
             "DB_NAME": "contentaudit",
             "DB_PORT": "5432",
             "DB_USER": "root",
+            "DOCKER_OPTS": "--dns 10.0.0.2 -H tcp://127.0.0.1:4243 -H unix:///var/run/docker.sock -g /mnt/docker",
           },
         },
         "FunctionName": "playwright-runner",
@@ -1826,7 +1766,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "VPCSecurityGroups": [
           {
             "Fn::GetAtt": [
-              "DBSecurityGroupContentaudit7865E2CC",
+              "RuleManagerRDSContentauditSecurityGroup7FAA6EF2",
               "GroupId",
             ],
           },
@@ -1846,6 +1786,79 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "TargetType": "AWS::RDS::DBInstance",
       },
       "Type": "AWS::SecretsManager::SecretTargetAttachment",
+    },
+    "RuleManagerRDSContentauditSecurityGroup7FAA6EF2": {
+      "Properties": {
+        "GroupDescription": "Security group for RuleManagerRDSContentaudit database",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
+            "Key": "devx-backup-enabled",
+            "Value": "true",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "VpcId": {
+          "Ref": "VpcParam",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "RuleManagerRDSContentauditSecurityGroupfromContentAuditRuleManagerRDSContentauditDatabaseProxyProxySecurityGroup9BDDC7B2IndirectPort102AE2ED": {
+      "Properties": {
+        "Description": "Allow connections to the database Instance from the Proxy",
+        "FromPort": {
+          "Fn::GetAtt": [
+            "RuleManagerRDSContentauditE35AF1B1",
+            "Endpoint.Port",
+          ],
+        },
+        "GroupId": {
+          "Fn::GetAtt": [
+            "RuleManagerRDSContentauditSecurityGroup7FAA6EF2",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "RuleManagerRDSContentauditDatabaseProxyProxySecurityGroup1DB7BA0E",
+            "GroupId",
+          ],
+        },
+        "ToPort": {
+          "Fn::GetAtt": [
+            "RuleManagerRDSContentauditE35AF1B1",
+            "Endpoint.Port",
+          ],
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
     },
     "RuleManagerRDSContentauditSubnetGroup94EB7174": {
       "Properties": {

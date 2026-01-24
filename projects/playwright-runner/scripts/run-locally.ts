@@ -12,7 +12,7 @@ const {
 });
 
 if (!url) {
-    throw new Error("Usage: node ./run-locally --url <page-url>")
+    throw new Error("Usage: node ./run-locally")
 }
 
 await handler({ url });

@@ -1,12 +1,15 @@
 import * as RDS from "@aws-sdk/rds-signer";
 import { PrismaClient } from "../../prisma/client/client.ts";
-import {
-  dbMaxConnections,
-  dbQueryTimeout,
-  dbTokenExpirySeconds,
-  region,
-} from "./constants.ts";
+import { dbTokenExpirySeconds, region } from "./constants.ts";
 import { PrismaPg } from "@prisma/adapter-pg";
+import os from "os";
+
+let userInfo = os.userInfo();
+console.log("User info:", userInfo);
+// Root user uid will always be 0
+if (userInfo.uid === 0) {
+  console.log("User is root.");
+}
 
 type DBCredentials = {
   dbHost: string;
@@ -14,6 +17,7 @@ type DBCredentials = {
   dbPassword?: string | undefined;
   dbUser: string;
   dbPort: number;
+  isLocal: boolean;
 };
 
 export const getPrismaClient = async (dbCredentials: DBCredentials) => {
@@ -41,11 +45,14 @@ async function generateConnectionUrl({
   dbPassword,
   dbUser,
   dbPort,
+  isLocal,
 }: DBCredentials): Promise<{
   adapter: PrismaPg;
   expiry?: Promise<void>;
 }> {
-  const expiry = new Promise<void>((res) => setTimeout(res, dbTokenExpirySeconds * 1000));
+  const expiry = new Promise<void>((res) =>
+    setTimeout(res, dbTokenExpirySeconds * 1000),
+  );
   const password = dbPassword
     ? dbPassword
     : await generateRdsPassword({
@@ -59,13 +66,22 @@ async function generateConnectionUrl({
   url.username = dbUser;
   url.password = password;
 
-  console.log({password});
+  if (!isLocal) {
+    url.searchParams.append("sslmode", "verify-ca");
+    url.searchParams.append("sslrootcert", "./prisma/root.pem");
+  }
+
+  console.log({ password });
 
   console.log(url.toString());
 
-  const adapter = new PrismaPg({
-    connectionString: url.toString(),
-  });
+  const adapter = new PrismaPg(
+    {
+      connectionString: url.toString(),
+      password: "",
+    },
+    { schema: "public" },
+  );
 
   return {
     adapter,
@@ -74,7 +90,7 @@ async function generateConnectionUrl({
 }
 
 export const generateRdsPassword = async (
-  options: RDS.SignerConfig
+  options: RDS.SignerConfig,
 ): Promise<string> => {
   const signer = new RDS.Signer({ ...options });
   const token = await signer.getAuthToken();
