@@ -3,8 +3,21 @@
 exports[`The ContentAudit stack matches the snapshot 1`] = `
 {
   "Metadata": {
-    "gu:cdk:constructs": [],
+    "gu:cdk:constructs": [
+      "GuPolicy",
+      "GuGithubActionsRole",
+    ],
     "gu:cdk:version": "TEST",
+  },
+  "Outputs": {
+    "GithubActionsRoleGithubActionsRoleArnC13D9654": {
+      "Value": {
+        "Fn::GetAtt": [
+          "GithubActionsRoleF5CC769F",
+          "Arn",
+        ],
+      },
+    },
   },
   "Resources": {
     "EcrArnParam81AC1BE5": {
@@ -20,7 +33,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "Type": "String",
         "Value": {
           "Fn::GetAtt": [
-            "PlaywrightRunnerRepository0171D4DD",
+            "PageRunnerRepository95AA8367",
             "Arn",
           ],
         },
@@ -39,12 +52,67 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         },
         "Type": "String",
         "Value": {
-          "Ref": "PlaywrightRunnerRepository0171D4DD",
+          "Ref": "PageRunnerRepository95AA8367",
         },
       },
       "Type": "AWS::SSM::Parameter",
     },
-    "PlaywrightRunnerKeyA33930DC": {
+    "GithubActionsRoleF5CC769F": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringLike": {
+                  "token.actions.githubusercontent.com:sub": "repo:guardian/content-audit:*",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:iam::",
+                      {
+                        "Ref": "AWS::AccountId",
+                      },
+                      ":oidc-provider/token.actions.githubusercontent.com",
+                    ],
+                  ],
+                },
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "PageRunnerKey35064014": {
       "DeletionPolicy": "Retain",
       "Properties": {
         "KeyPolicy": {
@@ -101,14 +169,14 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "Type": "AWS::KMS::Key",
       "UpdateReplacePolicy": "Retain",
     },
-    "PlaywrightRunnerRepository0171D4DD": {
+    "PageRunnerRepository95AA8367": {
       "DeletionPolicy": "Retain",
       "Properties": {
         "EncryptionConfiguration": {
           "EncryptionType": "KMS",
           "KmsKey": {
             "Fn::GetAtt": [
-              "PlaywrightRunnerKeyA33930DC",
+              "PageRunnerKey35064014",
               "Arn",
             ],
           },
@@ -146,6 +214,69 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::ECR::Repository",
       "UpdateReplacePolicy": "Retain",
+    },
+    "PushUpdatesPolicyEA982ACC": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+                "ecr:CompleteLayerUpload",
+                "ecr:DescribeImages",
+                "ecr:DescribeRepositories",
+                "ecr:ListTagsForResource",
+                "ecr:UploadLayerPart",
+                "ecr:ListImages",
+                "ecr:InitiateLayerUpload",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:PutImage",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "PageRunnerRepository95AA8367",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "PageRunnerRepository95AA8367",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "ecr:DescribeRegistry",
+                "ecr:DescribePullThroughCacheRules",
+                "ecr:GetAuthorizationToken",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "PushUpdatesPolicyEA982ACC",
+        "Roles": [
+          {
+            "Ref": "GithubActionsRoleF5CC769F",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
     },
   },
 }

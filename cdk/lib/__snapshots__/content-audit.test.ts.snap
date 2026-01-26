@@ -10,8 +10,6 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "GuParameter",
       "GuParameter",
       "GuParameter",
-      "GuPolicy",
-      "GuGithubActionsRole",
       "GuSecurityGroup",
       "GuDatabaseInstance",
       "GuAmiParameter",
@@ -30,22 +28,14 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     "gu:cdk:version": "TEST",
   },
   "Outputs": {
-    "GithubActionsRoleGithubActionsRoleArnC13D9654": {
-      "Value": {
-        "Fn::GetAtt": [
-          "GithubActionsRoleF5CC769F",
-          "Arn",
-        ],
-      },
-    },
-    "PlaywrightRunnerApiEndpoint1D1F9CE2": {
+    "PageRunnerApiEndpoint92746CFA": {
       "Value": {
         "Fn::Join": [
           "",
           [
             "https://",
             {
-              "Ref": "PlaywrightRunnerApi62D41F72",
+              "Ref": "PageRunnerApi8C87B2D1",
             },
             ".execute-api.",
             {
@@ -57,7 +47,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
             },
             "/",
             {
-              "Ref": "PlaywrightRunnerApiDeploymentStageprodA441B43B",
+              "Ref": "PageRunnerApiDeploymentStageprod2CCE9E72",
             },
             "/",
           ],
@@ -317,61 +307,6 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::IAM::Policy",
     },
-    "GithubActionsRoleF5CC769F": {
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": "sts:AssumeRoleWithWebIdentity",
-              "Condition": {
-                "StringLike": {
-                  "token.actions.githubusercontent.com:sub": "repo:guardian/content-audit:*",
-                },
-              },
-              "Effect": "Allow",
-              "Principal": {
-                "Federated": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:aws:iam::",
-                      {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":oidc-provider/token.actions.githubusercontent.com",
-                    ],
-                  ],
-                },
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "Tags": [
-          {
-            "Key": "App",
-            "Value": "content-audit",
-          },
-          {
-            "Key": "gu:cdk:version",
-            "Value": "TEST",
-          },
-          {
-            "Key": "gu:repo",
-            "Value": "guardian/content-audit",
-          },
-          {
-            "Key": "Stack",
-            "Value": "content-api",
-          },
-          {
-            "Key": "Stage",
-            "Value": "TEST",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Role",
-    },
     "GuHttpsEgressSecurityGroupContentaudit4BCD6A70": {
       "Properties": {
         "GroupDescription": "Allow all outbound HTTPS traffic",
@@ -571,69 +506,10 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::IAM::Role",
     },
-    "ParameterStoreReadContentaudit4C19FDC6": {
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": "ssm:GetParametersByPath",
-              "Effect": "Allow",
-              "Resource": {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:aws:ssm:",
-                    {
-                      "Ref": "AWS::Region",
-                    },
-                    ":",
-                    {
-                      "Ref": "AWS::AccountId",
-                    },
-                    ":parameter/TEST/content-api/content-audit",
-                  ],
-                ],
-              },
-            },
-            {
-              "Action": [
-                "ssm:GetParameters",
-                "ssm:GetParameter",
-              ],
-              "Effect": "Allow",
-              "Resource": {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:aws:ssm:",
-                    {
-                      "Ref": "AWS::Region",
-                    },
-                    ":",
-                    {
-                      "Ref": "AWS::AccountId",
-                    },
-                    ":parameter/TEST/content-api/content-audit/*",
-                  ],
-                ],
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "PolicyName": "parameter-store-read-policy",
-        "Roles": [
-          {
-            "Ref": "InstanceRoleContentauditF4A4DCF1",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Policy",
-    },
-    "PlaywrightRunnerApi62D41F72": {
+    "PageRunnerApi8C87B2D1": {
       "Properties": {
         "ApiKeySourceType": "HEADER",
-        "Name": "PlaywrightRunnerApi",
+        "Name": "PageRunnerApi",
         "Tags": [
           {
             "Key": "App",
@@ -659,7 +535,85 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::ApiGateway::RestApi",
     },
-    "PlaywrightRunnerApiANY1C25059F": {
+    "PageRunnerApiANYApiPermissionContentAuditPageRunnerApi8282C8F4ANY514EED25": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "PageRunnerLambdaB666D245",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "PageRunnerApi8C87B2D1",
+              },
+              "/",
+              {
+                "Ref": "PageRunnerApiDeploymentStageprod2CCE9E72",
+              },
+              "/*/",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "PageRunnerApiANYApiPermissionTestContentAuditPageRunnerApi8282C8F4ANY7010F82E": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "PageRunnerLambdaB666D245",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "PageRunnerApi8C87B2D1",
+              },
+              "/test-invoke-stage/*/",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "PageRunnerApiANYF683BB54": {
       "Properties": {
         "ApiKeyRequired": true,
         "AuthorizationType": "NONE",
@@ -682,7 +636,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
                 ":lambda:path/2015-03-31/functions/",
                 {
                   "Fn::GetAtt": [
-                    "PlaywrightRunnerLambda4FD8FEBA",
+                    "PageRunnerLambdaB666D245",
                     "Arn",
                   ],
                 },
@@ -693,103 +647,25 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         },
         "ResourceId": {
           "Fn::GetAtt": [
-            "PlaywrightRunnerApi62D41F72",
+            "PageRunnerApi8C87B2D1",
             "RootResourceId",
           ],
         },
         "RestApiId": {
-          "Ref": "PlaywrightRunnerApi62D41F72",
+          "Ref": "PageRunnerApi8C87B2D1",
         },
       },
       "Type": "AWS::ApiGateway::Method",
     },
-    "PlaywrightRunnerApiANYApiPermissionContentAuditPlaywrightRunnerApiD4EABCA7ANYDE473B0F": {
-      "Properties": {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": {
-          "Fn::GetAtt": [
-            "PlaywrightRunnerLambda4FD8FEBA",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": {
-          "Fn::Join": [
-            "",
-            [
-              "arn:",
-              {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              {
-                "Ref": "PlaywrightRunnerApi62D41F72",
-              },
-              "/",
-              {
-                "Ref": "PlaywrightRunnerApiDeploymentStageprodA441B43B",
-              },
-              "/*/",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "PlaywrightRunnerApiANYApiPermissionTestContentAuditPlaywrightRunnerApiD4EABCA7ANYE50479A3": {
-      "Properties": {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": {
-          "Fn::GetAtt": [
-            "PlaywrightRunnerLambda4FD8FEBA",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": {
-          "Fn::Join": [
-            "",
-            [
-              "arn:",
-              {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              {
-                "Ref": "PlaywrightRunnerApi62D41F72",
-              },
-              "/test-invoke-stage/*/",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "PlaywrightRunnerApiAccount103B9B6D": {
+    "PageRunnerApiAccount3AD4C67C": {
       "DeletionPolicy": "Retain",
       "DependsOn": [
-        "PlaywrightRunnerApi62D41F72",
+        "PageRunnerApi8C87B2D1",
       ],
       "Properties": {
         "CloudWatchRoleArn": {
           "Fn::GetAtt": [
-            "PlaywrightRunnerApiCloudWatchRole54002A2E",
+            "PageRunnerApiCloudWatchRole8ADDBD1A",
             "Arn",
           ],
         },
@@ -797,7 +673,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "Type": "AWS::ApiGateway::Account",
       "UpdateReplacePolicy": "Retain",
     },
-    "PlaywrightRunnerApiCloudWatchRole54002A2E": {
+    "PageRunnerApiCloudWatchRole8ADDBD1A": {
       "DeletionPolicy": "Retain",
       "Properties": {
         "AssumeRolePolicyDocument": {
@@ -852,30 +728,30 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "Type": "AWS::IAM::Role",
       "UpdateReplacePolicy": "Retain",
     },
-    "PlaywrightRunnerApiDeployment4091482A98c9a97a19f11955020f92cd91691391": {
+    "PageRunnerApiDeployment246321AA97d24d5fd295754a4269a523f31ebd6e": {
       "DependsOn": [
-        "PlaywrightRunnerApiproxyANY1EF90290",
-        "PlaywrightRunnerApiproxy1CACB525",
-        "PlaywrightRunnerApiANY1C25059F",
+        "PageRunnerApiproxyANYBEF9D69A",
+        "PageRunnerApiproxyC6B39E15",
+        "PageRunnerApiANYF683BB54",
       ],
       "Properties": {
         "Description": "Automatically created by the RestApi construct",
         "RestApiId": {
-          "Ref": "PlaywrightRunnerApi62D41F72",
+          "Ref": "PageRunnerApi8C87B2D1",
         },
       },
       "Type": "AWS::ApiGateway::Deployment",
     },
-    "PlaywrightRunnerApiDeploymentStageprodA441B43B": {
+    "PageRunnerApiDeploymentStageprod2CCE9E72": {
       "DependsOn": [
-        "PlaywrightRunnerApiAccount103B9B6D",
+        "PageRunnerApiAccount3AD4C67C",
       ],
       "Properties": {
         "DeploymentId": {
-          "Ref": "PlaywrightRunnerApiDeployment4091482A98c9a97a19f11955020f92cd91691391",
+          "Ref": "PageRunnerApiDeployment246321AA97d24d5fd295754a4269a523f31ebd6e",
         },
         "RestApiId": {
-          "Ref": "PlaywrightRunnerApi62D41F72",
+          "Ref": "PageRunnerApi8C87B2D1",
         },
         "StageName": "prod",
         "Tags": [
@@ -903,15 +779,15 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::ApiGateway::Stage",
     },
-    "PlaywrightRunnerApiPlaywrightRunnerUsagePlan0CE59C49": {
+    "PageRunnerApiPageRunnerUsagePlan0F862B9C": {
       "Properties": {
         "ApiStages": [
           {
             "ApiId": {
-              "Ref": "PlaywrightRunnerApi62D41F72",
+              "Ref": "PageRunnerApi8C87B2D1",
             },
             "Stage": {
-              "Ref": "PlaywrightRunnerApiDeploymentStageprodA441B43B",
+              "Ref": "PageRunnerApiDeploymentStageprod2CCE9E72",
             },
             "Throttle": {},
           },
@@ -938,26 +814,89 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
             "Value": "TEST",
           },
         ],
-        "UsagePlanName": "PlaywrightRunnerUsagePlan",
+        "UsagePlanName": "PageRunnerUsagePlan",
       },
       "Type": "AWS::ApiGateway::UsagePlan",
     },
-    "PlaywrightRunnerApiproxy1CACB525": {
+    "PageRunnerApiproxyANYApiPermissionContentAuditPageRunnerApi8282C8F4ANYproxyFA6D01B8": {
       "Properties": {
-        "ParentId": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
           "Fn::GetAtt": [
-            "PlaywrightRunnerApi62D41F72",
-            "RootResourceId",
+            "PageRunnerLambdaB666D245",
+            "Arn",
           ],
         },
-        "PathPart": "{proxy+}",
-        "RestApiId": {
-          "Ref": "PlaywrightRunnerApi62D41F72",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "PageRunnerApi8C87B2D1",
+              },
+              "/",
+              {
+                "Ref": "PageRunnerApiDeploymentStageprod2CCE9E72",
+              },
+              "/*/*",
+            ],
+          ],
         },
       },
-      "Type": "AWS::ApiGateway::Resource",
+      "Type": "AWS::Lambda::Permission",
     },
-    "PlaywrightRunnerApiproxyANY1EF90290": {
+    "PageRunnerApiproxyANYApiPermissionTestContentAuditPageRunnerApi8282C8F4ANYproxy5A6A18F2": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "PageRunnerLambdaB666D245",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "PageRunnerApi8C87B2D1",
+              },
+              "/test-invoke-stage/*/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "PageRunnerApiproxyANYBEF9D69A": {
       "Properties": {
         "ApiKeyRequired": true,
         "AuthorizationType": "NONE",
@@ -980,7 +919,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
                 ":lambda:path/2015-03-31/functions/",
                 {
                   "Fn::GetAtt": [
-                    "PlaywrightRunnerLambda4FD8FEBA",
+                    "PageRunnerLambdaB666D245",
                     "Arn",
                   ],
                 },
@@ -990,96 +929,33 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           },
         },
         "ResourceId": {
-          "Ref": "PlaywrightRunnerApiproxy1CACB525",
+          "Ref": "PageRunnerApiproxyC6B39E15",
         },
         "RestApiId": {
-          "Ref": "PlaywrightRunnerApi62D41F72",
+          "Ref": "PageRunnerApi8C87B2D1",
         },
       },
       "Type": "AWS::ApiGateway::Method",
     },
-    "PlaywrightRunnerApiproxyANYApiPermissionContentAuditPlaywrightRunnerApiD4EABCA7ANYproxy1AFC1895": {
+    "PageRunnerApiproxyC6B39E15": {
       "Properties": {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": {
+        "ParentId": {
           "Fn::GetAtt": [
-            "PlaywrightRunnerLambda4FD8FEBA",
-            "Arn",
+            "PageRunnerApi8C87B2D1",
+            "RootResourceId",
           ],
         },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": {
-          "Fn::Join": [
-            "",
-            [
-              "arn:",
-              {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              {
-                "Ref": "PlaywrightRunnerApi62D41F72",
-              },
-              "/",
-              {
-                "Ref": "PlaywrightRunnerApiDeploymentStageprodA441B43B",
-              },
-              "/*/*",
-            ],
-          ],
+        "PathPart": "{proxy+}",
+        "RestApiId": {
+          "Ref": "PageRunnerApi8C87B2D1",
         },
       },
-      "Type": "AWS::Lambda::Permission",
+      "Type": "AWS::ApiGateway::Resource",
     },
-    "PlaywrightRunnerApiproxyANYApiPermissionTestContentAuditPlaywrightRunnerApiD4EABCA7ANYproxy00B501A4": {
-      "Properties": {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": {
-          "Fn::GetAtt": [
-            "PlaywrightRunnerLambda4FD8FEBA",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": {
-          "Fn::Join": [
-            "",
-            [
-              "arn:",
-              {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              {
-                "Ref": "PlaywrightRunnerApi62D41F72",
-              },
-              "/test-invoke-stage/*/*",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "PlaywrightRunnerLambda4FD8FEBA": {
+    "PageRunnerLambdaB666D245": {
       "DependsOn": [
-        "PlaywrightRunnerLambdaServiceRoleDefaultPolicy71DCDE47",
-        "PlaywrightRunnerLambdaServiceRole9CE1E928",
+        "PageRunnerLambdaServiceRoleDefaultPolicy1094EB2F",
+        "PageRunnerLambdaServiceRole689316B6",
       ],
       "Properties": {
         "Architectures": [
@@ -1151,7 +1027,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "PackageType": "Image",
         "Role": {
           "Fn::GetAtt": [
-            "PlaywrightRunnerLambdaServiceRole9CE1E928",
+            "PageRunnerLambdaServiceRole689316B6",
             "Arn",
           ],
         },
@@ -1194,7 +1070,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::Lambda::Function",
     },
-    "PlaywrightRunnerLambdaServiceRole9CE1E928": {
+    "PageRunnerLambdaServiceRole689316B6": {
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -1259,7 +1135,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::IAM::Role",
     },
-    "PlaywrightRunnerLambdaServiceRoleDefaultPolicy71DCDE47": {
+    "PageRunnerLambdaServiceRoleDefaultPolicy1094EB2F": {
       "Properties": {
         "PolicyDocument": {
           "Statement": [
@@ -1311,67 +1187,69 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "PlaywrightRunnerLambdaServiceRoleDefaultPolicy71DCDE47",
+        "PolicyName": "PageRunnerLambdaServiceRoleDefaultPolicy1094EB2F",
         "Roles": [
           {
-            "Ref": "PlaywrightRunnerLambdaServiceRole9CE1E928",
+            "Ref": "PageRunnerLambdaServiceRole689316B6",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "PushUpdatesPolicyEA982ACC": {
+    "ParameterStoreReadContentaudit4C19FDC6": {
       "Properties": {
         "PolicyDocument": {
           "Statement": [
             {
-              "Action": [
-                "ecr:GetDownloadUrlForLayer",
-                "ecr:BatchGetImage",
-                "ecr:CompleteLayerUpload",
-                "ecr:DescribeImages",
-                "ecr:DescribeRepositories",
-                "ecr:ListTagsForResource",
-                "ecr:UploadLayerPart",
-                "ecr:ListImages",
-                "ecr:InitiateLayerUpload",
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:PutImage",
-              ],
+              "Action": "ssm:GetParametersByPath",
               "Effect": "Allow",
-              "Resource": [
-                {
-                  "Ref": "EcrArnParam",
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      {
-                        "Ref": "EcrArnParam",
-                      },
-                      "/*",
-                    ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ssm:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":parameter/TEST/content-api/content-audit",
                   ],
-                },
-              ],
+                ],
+              },
             },
             {
               "Action": [
-                "ecr:DescribeRegistry",
-                "ecr:DescribePullThroughCacheRules",
-                "ecr:GetAuthorizationToken",
+                "ssm:GetParameters",
+                "ssm:GetParameter",
               ],
               "Effect": "Allow",
-              "Resource": "*",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ssm:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":parameter/TEST/content-api/content-audit/*",
+                  ],
+                ],
+              },
             },
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "PushUpdatesPolicyEA982ACC",
+        "PolicyName": "parameter-store-read-policy",
         "Roles": [
           {
-            "Ref": "GithubActionsRoleF5CC769F",
+            "Ref": "InstanceRoleContentauditF4A4DCF1",
           },
         ],
       },

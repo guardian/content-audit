@@ -1,6 +1,6 @@
 # page-runner
 
-A lambda that runs a web page, and reports on its performance and security characteristics. It will eventually store information about that page for analysis.
+A lambda that runs a web page in a headless browser, and reports on its performance and security characteristics. It will eventually store information about that page for analysis.
 
 Runs [playwright](https://playwright.dev/) in a Docker image.
 

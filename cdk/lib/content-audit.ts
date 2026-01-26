@@ -9,10 +9,6 @@ import {
 	GuStack,
 } from '@guardian/cdk/lib/constructs/core';
 import { GuSecurityGroup } from '@guardian/cdk/lib/constructs/ec2';
-import {
-	GuGithubActionsRole,
-	GuPolicy,
-} from '@guardian/cdk/lib/constructs/iam';
 import { GuDatabaseInstance } from '@guardian/cdk/lib/constructs/rds';
 import { type App, Duration, Fn, RemovalPolicy } from 'aws-cdk-lib';
 import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
@@ -107,7 +103,7 @@ export class ContentAudit extends GuStack {
 
 		const ecrRepo = Repository.fromRepositoryAttributes(
 			this,
-			'PlaywrightRunnerRepository',
+			'PageRunnerRepository',
 			{
 				repositoryArn: ecrRepoArn.valueAsString,
 				repositoryName: ecrRepoName.valueAsString,
@@ -132,48 +128,6 @@ export class ContentAudit extends GuStack {
 				},
 			}),
 		);
-
-		// Allow GHA to push new images to ECR
-		new GuGithubActionsRole(this, {
-			condition: {
-				githubOrganisation: 'guardian',
-				repositories: 'content-audit:*',
-			},
-			policies: [
-				new GuPolicy(this, 'PushUpdatesPolicy', {
-					statements: [
-						// Allows the role to push updates to the repo
-						new PolicyStatement({
-							effect: Effect.ALLOW,
-							actions: [
-								'ecr:GetDownloadUrlForLayer',
-								'ecr:BatchGetImage',
-								'ecr:CompleteLayerUpload',
-								'ecr:DescribeImages',
-								'ecr:DescribeRepositories',
-								'ecr:ListTagsForResource',
-								'ecr:UploadLayerPart',
-								'ecr:ListImages',
-								'ecr:InitiateLayerUpload',
-								'ecr:BatchCheckLayerAvailability',
-								'ecr:PutImage',
-							],
-							resources: [ecrRepo.repositoryArn, ecrRepo.repositoryArn + '/*'],
-						}),
-						// Allows the role to obtain login tokens for ECR as a whole
-						new PolicyStatement({
-							effect: Effect.ALLOW,
-							actions: [
-								'ecr:DescribeRegistry',
-								'ecr:DescribePullThroughCacheRules',
-								'ecr:GetAuthorizationToken',
-							],
-							resources: ['*'],
-						}),
-					],
-				}),
-			],
-		});
 
 		const tagOrDigest = process.env['BUILD_NUMBER'] ?? imageTag.valueAsString;
 
@@ -239,9 +193,9 @@ export class ContentAudit extends GuStack {
 
 		const dbHostname = dbProxy.endpoint;
 
-		const playwrightRunnerFunction = new DockerImageFunction(
+		const pageRunnerFunction = new DockerImageFunction(
 			this,
-			'PlaywrightRunnerLambda',
+			'PageRunnerLambda',
 			{
 				code: DockerImageCode.fromEcr(ecrRepo, { tagOrDigest }),
 				functionName: 'page-runner',
@@ -259,18 +213,18 @@ export class ContentAudit extends GuStack {
 			},
 		);
 
-		dbProxy.grantConnect(playwrightRunnerFunction);
+		dbProxy.grantConnect(pageRunnerFunction);
 
-		const api = new LambdaRestApi(this, 'PlaywrightRunnerApi', {
-			handler: playwrightRunnerFunction,
+		const api = new LambdaRestApi(this, 'PageRunnerApi', {
+			handler: pageRunnerFunction,
 			apiKeySourceType: ApiKeySourceType.HEADER,
 			defaultMethodOptions: {
 				apiKeyRequired: true,
 			},
 		});
 
-		const usagePlan = api.addUsagePlan('PlaywrightRunnerUsagePlan', {
-			name: 'PlaywrightRunnerUsagePlan',
+		const usagePlan = api.addUsagePlan('PageRunnerUsagePlan', {
+			name: 'PageRunnerUsagePlan',
 		});
 
 		usagePlan.addApiStage({
