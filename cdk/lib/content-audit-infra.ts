@@ -18,7 +18,7 @@ export class ContentAuditInfra extends GuStack {
 		const encryptionKey = new Key(this, 'PlaywrightRunnerKey');
 
 		const ecrRepo = new Repository(this, 'PlaywrightRunnerRepository', {
-			repositoryName: `${this.app}/playwright-runner`,
+			repositoryName: `${this.app}/page-runner`,
 			encryption: RepositoryEncryption.KMS,
 			encryptionKey,
 			imageTagMutability: TagMutability.IMMUTABLE,

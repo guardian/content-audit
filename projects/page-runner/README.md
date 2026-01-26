@@ -1,12 +1,12 @@
-# playwright-runner
+# page-runner
 
-A lambda that runs a web page in [playwright](https://playwright.dev/). It will eventually store information about that page for analysis.
+A lambda that runs a web page, and reports on its performance and security characteristics. It will eventually store information about that page for analysis.
 
-Runs in a Docker image.
+Runs [playwright](https://playwright.dev/) in a Docker image.
 
 ## Setup
 
-Run `./scripts/setup.sh` to set up the playwright-runner project.
+Run `./scripts/setup.sh` to set up the page-runner project.
 
 ## Running locally
 
@@ -29,12 +29,12 @@ You can also run the code in a simulated lambda environment. When running outsid
 First, build and run the docker image —
 
 ```
-# Build a docker image, tagged with `playwright-runner:latest`
-docker build -t playwright-runner:latest .
+# Build a docker image, tagged with `page-runner:latest`
+docker build -t page-runner:latest .
 
-# Run a container using `playwright-runner:latest`, removing the container when
+# Run a container using `page-runner:latest`, removing the container when
 # it is stopped, and binding local port 6789 to port 8080 in the container
-docker run --rm -ti  -p 6789:8080 playwright-runner:latest
+docker run --rm -ti  -p 6789:8080 page-runner:latest
 ```
 
 Then, `POST` a request to the endpoint exposed by `aws-rie`. Note that the payload should be what we'd expect from [API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format): JSON with a `body` field that contains a JSON string representing the data we're sending to the lambda.

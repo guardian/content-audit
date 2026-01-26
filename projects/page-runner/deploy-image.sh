@@ -1,5 +1,5 @@
-IMAGE_NAME=playwright-runner-lambda
-ACCOUNT_URL=308506855511.dkr.ecr.eu-west-1.amazonaws.com/content-audit/playwright-runner
+IMAGE_NAME=page-runner-lambda
+ACCOUNT_URL=308506855511.dkr.ecr.eu-west-1.amazonaws.com/content-audit/page-runner
 echo docker build -t $IMAGE_NAME:latest .
 docker build -t ${IMAGE_NAME}:latest .
 docker tag $IMAGE_NAME:latest $ACCOUNT_URL/$IMAGE_NAME:latest

@@ -120,7 +120,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "LifecyclePolicy": {
           "LifecyclePolicyText": "{"rules":[{"rulePriority":1,"description":"Limit the number of retained images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":100},"action":{"type":"expire"}}]}",
         },
-        "RepositoryName": "content-audit/playwright-runner",
+        "RepositoryName": "content-audit/page-runner",
         "Tags": [
           {
             "Key": "App",

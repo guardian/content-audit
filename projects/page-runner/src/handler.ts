@@ -12,7 +12,7 @@ export const createHandler =
     prismaClient: PrismaClient
   ): Handler<APIGatewayProxyEvent> =>
   async (event) => {
-    console.log("`playwright-runner` started");
+    console.log("`page-runner` started");
     console.log(`Event payload received: ${event.body}`);
 
     // Temporary until we add working DB code to test the connection

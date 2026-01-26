@@ -13,7 +13,7 @@ jobs:
       with:
         node-version-file: '.nvmrc'
     - name: Run tests
-      working-directory: projects/playwright-runner
+      working-directory: projects/page-runner
       run: |
         ./scripts/setup.sh
         docker compose up -d
@@ -21,7 +21,7 @@ jobs:
         npm run migrate
         npm test
 
-  create-and-push-playwright-runner-image:
+  create-and-push-page-runner-image:
     runs-on: ubuntu-24.04-arm
     permissions:
       # Needed to interact with GitHub's OIDC Token endpoint to configure AWS credentials
@@ -55,10 +55,10 @@ jobs:
         REGISTRY: ${{ steps.ecr-login.outputs.registry }}
         IMAGE_TAG: ${{ github.run_number }}
       with:
-        context: projects/playwright-runner
+        context: projects/page-runner
         platforms: linux/arm64
         push: true
-        tags: ${{ env.REGISTRY }}/content-audit/playwright-runner:${{ env.IMAGE_TAG }}
+        tags: ${{ env.REGISTRY }}/content-audit/page-runner:${{ env.IMAGE_TAG }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
         provenance: false
@@ -95,7 +95,7 @@ jobs:
 
   upload-to-riffraff:
     needs:
-      - create-and-push-playwright-runner-image
+      - create-and-push-page-runner-image
       - build-cdk
       - test
     permissions:

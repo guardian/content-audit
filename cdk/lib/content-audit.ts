@@ -182,7 +182,7 @@ export class ContentAudit extends GuStack {
 		const dbSecurityGroupName = `ContentAuditDatabaseSecurityGroup${this.stage}`;
 		const dbAccessSecurityGroup = new GuSecurityGroup(this, 'DBSecurityGroup', {
 			app,
-			description: 'Allow connection from playwright-runner lambda to DB',
+			description: 'Allow connection from page-runner lambda to DB',
 			vpc,
 			securityGroupName: dbSecurityGroupName,
 		});
@@ -244,7 +244,7 @@ export class ContentAudit extends GuStack {
 			'PlaywrightRunnerLambda',
 			{
 				code: DockerImageCode.fromEcr(ecrRepo, { tagOrDigest }),
-				functionName: 'playwright-runner',
+				functionName: 'page-runner',
 				memorySize: 4096,
 				timeout: Duration.seconds(60),
 				architecture: Architecture.ARM_64,
