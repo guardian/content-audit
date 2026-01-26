@@ -11,7 +11,7 @@
     "migrate": "prisma migrate deploy",
     "postinstall": "prisma generate",
     "write-local-env": "node ./scripts/write-db-env.ts --stage LOCAL",
-    "rds-tunnel": "sh -c 'ssm ssh -t content-audit,CODE --profile capi --tunnel 7658:$(node ./scripts/get-rds-proxy-endpoint.ts --stage CODE):5432' && echo \"\npassword:\n\" && node ./scripts/write-db-env.ts --stage CODE",
+    "rds-tunnel": "sh -c 'ssm ssh -t content-audit,CODE --profile capi --tunnel 7658:$(node ./scripts/get-rds-proxy-endpoint.ts --stage CODE):5432' && node ./scripts/write-db-env.ts --stage CODE",
     "stop-rds-tunnel": "node ./scripts/write-db-env.ts --stage LOCAL && kill $(lsof -ti :7658)"
   },
   "keywords": [],
