@@ -27,13 +27,8 @@ import {
 	SecurityGroup,
 	Vpc,
 } from 'aws-cdk-lib/aws-ec2';
-import {
-	Repository,
-	RepositoryEncryption,
-	TagMutability,
-} from 'aws-cdk-lib/aws-ecr';
+import { Repository } from 'aws-cdk-lib/aws-ecr';
 import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { Key } from 'aws-cdk-lib/aws-kms';
 import {
 	Architecture,
 	DockerImageCode,
@@ -70,6 +65,18 @@ export class ContentAudit extends GuStack {
 			default: props.buildNumber,
 		});
 
+		const ecrRepoArn = new GuParameter(this, 'EcrArnParam', {
+			fromSSM: true,
+			default: `/INFRA/${this.stack}/${this.app}/ecr-arn`,
+			description: 'The ECR repository ARN for the stack',
+		});
+
+		const ecrRepoName = new GuParameter(this, 'EcrNameParam', {
+			fromSSM: true,
+			default: `/INFRA/${this.stack}/${this.app}/ecr-name`,
+			description: 'The ECR repository name for the stack',
+		});
+
 		const vpcId = new GuParameter(this, 'VpcParam', {
 			fromSSM: true,
 			default: `/account/vpc/primary/id`,
@@ -97,21 +104,14 @@ export class ContentAudit extends GuStack {
 			publicSubnetIds: publicSubnetIds.valueAsList,
 		});
 
-		const encryptionKey = new Key(this, 'PlaywrightRunnerKey');
-
-		const ecrRepo = new Repository(this, 'PlaywrightRunnerRepository', {
-			repositoryName: `${this.app}/playwright-runner`,
-			encryption: RepositoryEncryption.KMS,
-			encryptionKey,
-			imageTagMutability: TagMutability.IMMUTABLE,
-			imageScanOnPush: true,
-			lifecycleRules: [
-				{
-					description: 'Limit the number of retained images',
-					maxImageCount: 100,
-				},
-			],
-		});
+		const ecrRepo = Repository.fromRepositoryAttributes(
+			this,
+			'PlaywrightRunnerRepository',
+			{
+				repositoryArn: ecrRepoArn.valueAsString,
+				repositoryName: ecrRepoName.valueAsString,
+			},
+		);
 
 		ecrRepo.addToResourcePolicy(
 			new PolicyStatement({
