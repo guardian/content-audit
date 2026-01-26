@@ -74,6 +74,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
     "ImageTag": {
+      "Default": "TEST",
       "Description": "The docker image tag to use. Useful when cloudforming manually - in CI, this is set by BUILD_NUMBER",
       "Type": "String",
     },

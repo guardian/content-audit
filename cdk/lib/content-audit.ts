@@ -47,8 +47,12 @@ import {
 	StorageType,
 } from 'aws-cdk-lib/aws-rds';
 
+interface StackProps extends GuStackProps {
+	buildNumber: string;
+}
+
 export class ContentAudit extends GuStack {
-	constructor(scope: App, id: string, props: GuStackProps) {
+	constructor(scope: App, id: string, props: StackProps) {
 		super(scope, id, props);
 
 		if (!this.app) {
@@ -63,6 +67,7 @@ export class ContentAudit extends GuStack {
 		const imageTag = new GuParameter(this, 'ImageTag', {
 			description:
 				'The docker image tag to use. Useful when cloudforming manually - in CI, this is set by BUILD_NUMBER',
+			default: props.buildNumber,
 		});
 
 		const vpcId = new GuParameter(this, 'VpcParam', {
@@ -248,7 +253,7 @@ export class ContentAudit extends GuStack {
 					DB_USER: dbUser,
 					DB_HOST: dbHostname,
 					DB_NAME: databaseName,
-					DB_PORT: dbPort.toString()
+					DB_PORT: dbPort.toString(),
 				},
 			},
 		);

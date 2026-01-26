@@ -78,7 +78,7 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "npm"
           cache-dependency-path: cdk/package-lock.json
-      - run: npm ci
+      - run: BUILD_NUMBER=${{github.run_number}} npm ci
         working-directory: cdk
       - run: npm test
         working-directory: cdk
