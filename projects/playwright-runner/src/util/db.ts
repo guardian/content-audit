@@ -2,14 +2,6 @@ import * as RDS from "@aws-sdk/rds-signer";
 import { PrismaClient } from "../../prisma/client/client.ts";
 import { dbTokenExpirySeconds, region } from "./constants.ts";
 import { PrismaPg } from "@prisma/adapter-pg";
-import os from "os";
-
-let userInfo = os.userInfo();
-console.log("User info:", userInfo);
-// Root user uid will always be 0
-if (userInfo.uid === 0) {
-  console.log("User is root.");
-}
 
 type DBCredentials = {
   dbHost: string;
@@ -21,17 +13,23 @@ type DBCredentials = {
 };
 
 export const getPrismaClient = async (dbCredentials: DBCredentials) => {
-  console.log("Generating connection url");
-  const { adapter, expiry } = await generateConnectionUrl(dbCredentials);
+  const connectionString = await generateConnectionUrl(dbCredentials);
 
-  console.log("Creating database client");
+  const expiry = new Promise<void>((res) =>
+    setTimeout(res, dbTokenExpirySeconds * 1000),
+  );
+
+  const adapter = new PrismaPg(
+    {
+      connectionString,
+    },
+    { schema: "public" },
+  );
 
   const client = new PrismaClient({
     log: ["query"],
     adapter,
   });
-
-  console.log("Client created");
 
   return {
     client,
@@ -39,20 +37,14 @@ export const getPrismaClient = async (dbCredentials: DBCredentials) => {
   };
 };
 
-async function generateConnectionUrl({
+export async function generateConnectionUrl({
   dbHost,
   dbName,
   dbPassword,
   dbUser,
   dbPort,
   isLocal,
-}: DBCredentials): Promise<{
-  adapter: PrismaPg;
-  expiry?: Promise<void>;
-}> {
-  const expiry = new Promise<void>((res) =>
-    setTimeout(res, dbTokenExpirySeconds * 1000),
-  );
+}: DBCredentials): Promise<string> {
   const password = dbPassword
     ? dbPassword
     : await generateRdsPassword({
@@ -71,22 +63,7 @@ async function generateConnectionUrl({
     url.searchParams.append("sslrootcert", "./prisma/root.pem");
   }
 
-  console.log({ password });
-
-  console.log(url.toString());
-
-  const adapter = new PrismaPg(
-    {
-      connectionString: url.toString(),
-      password: "",
-    },
-    { schema: "public" },
-  );
-
-  return {
-    adapter,
-    expiry,
-  };
+  return url.toString();
 }
 
 export const generateRdsPassword = async (

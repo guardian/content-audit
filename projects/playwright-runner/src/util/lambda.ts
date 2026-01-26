@@ -10,11 +10,16 @@ export const errorResponse = (statusCode: number, error: unknown) => {
   const message =
     error instanceof Error
       ? error.message
-      : error?.toString() ?? "Unknown error";
+      : (error?.toString() ?? "Unknown error");
+  const stack =
+    error instanceof Error
+      ? error.stack
+      : (error?.toString() ?? "Unknown error");
   return {
     body: JSON.stringify({
       status: "error",
       message,
+      stack,
     }),
     statusCode,
   };

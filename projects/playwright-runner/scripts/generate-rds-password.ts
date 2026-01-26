@@ -1,17 +1,22 @@
-import { generateRdsPassword } from "../src/util/db.ts";
+import { generateConnectionUrl, generateRdsPassword } from "../src/util/db.ts";
 
 import {
   DescribeDBProxyEndpointsCommand,
   RDSClient,
 } from "@aws-sdk/client-rds";
+import { writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
 const {
-  values: { stage: stageArg, help },
+  values: { stage: stageArg, help, writeConnectionString },
 } = parseArgs({
   options: {
     stage: {
       type: "string",
+    },
+    writeConnectionString: {
+      type: "boolean",
+      short: "w",
     },
     help: {
       type: "boolean",
@@ -20,10 +25,9 @@ const {
 });
 
 if (help) {
-  console.log(`get-rds-proxy-endpoint - get the project's rds proxy endpoint for a given stage
+  console.log(`generate-rds-password - generate an IAM password for the RDS proxy for a given stage
 
-Usage: node ./get-rds-proxy-endpoint.ts [--stage CODE|PROD]
-    `);
+Usage: node ./generate-rds-password.ts [--stage CODE|PROD] [-i, --include-connection-string]`);
   process.exit(0);
 }
 
@@ -46,9 +50,7 @@ const endpoint = describeProxiesResult.DBProxyEndpoints?.[0];
 
 if (!endpoint || !endpoint?.Endpoint) {
   throw new Error(
-    `Missing data for RDS endpoint: ${JSON.stringify(
-      { endpoint }
-    )}`
+    `Missing data for RDS endpoint: ${JSON.stringify({ endpoint })}`,
   );
 }
 
@@ -61,3 +63,19 @@ const password = await generateRdsPassword({
 });
 
 process.stdout.write(password);
+
+if (writeConnectionString) {
+  const connectionUrl = await generateConnectionUrl({
+    dbHost: "localhost",
+    dbName: "contentaudit",
+    dbUser: "root",
+    dbPassword: password,
+    dbPort: 7658,
+    isLocal: true,
+  });
+
+  writeFileSync(
+    `${import.meta.dirname}/../.env`,
+    `DATABASE_URL=${connectionUrl}`,
+  );
+}

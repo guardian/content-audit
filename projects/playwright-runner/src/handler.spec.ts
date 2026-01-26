@@ -25,7 +25,7 @@ await test("handler", async () => {
   const { client: prismaClient } = await getPrismaClient({
     dbHost,
     dbName,
-    dbPassword: "content-audit",
+    dbPassword: "contentaudit",
     dbPort,
     dbUser,
     isLocal: true,
