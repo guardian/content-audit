@@ -12,5 +12,14 @@ model audit_page_run {
   id         Int       @id @default(autoincrement())
   created_at DateTime? @default(now()) @db.Date
   /// The URL of the page that ran
-  url        String?   @db.VarChar(2048)
+  url        String    @db.VarChar(2048)
+  status     RunStatus @default(IN_FLIGHT)
+  /// Relevant error text, if the run failed
+  error      String?   @db.Text()
+}
+
+enum RunStatus {
+  IN_FLIGHT
+  COMPLETED
+  FAILED
 }
