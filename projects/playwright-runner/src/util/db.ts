@@ -9,7 +9,7 @@ type DBCredentials = {
   dbPassword?: string | undefined;
   dbUser: string;
   dbPort: number;
-  isLocal: boolean;
+  includeRootCert: boolean;
 };
 
 export const getPrismaClient = async (dbCredentials: DBCredentials) => {
@@ -43,7 +43,7 @@ export async function generateConnectionUrl({
   dbPassword,
   dbUser,
   dbPort,
-  isLocal,
+  includeRootCert: isLocal,
 }: DBCredentials): Promise<string> {
   const password = dbPassword
     ? dbPassword

@@ -5,13 +5,14 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "run": "DB_HOST=localhost DB_USER=content-audit DB_PASSWORD=content-audit DB_NAME=contentaudit DB_PORT=5432 node ./scripts/run-locally.ts",
-    "test": "DB_HOST=localhost DB_USER=content-audit DB_PASSWORD=content-audit DB_NAME=contentaudit DB_PORT=5432 node --test --test-force-exit \"**/*.spec.ts\"",
+    "run": "DB_HOST=localhost DB_USER=contentaudit DB_PASSWORD=contentaudit DB_NAME=contentaudit DB_PORT=5432 node ./scripts/run-locally.ts",
+    "test": "DB_HOST=localhost DB_USER=contentaudit DB_PASSWORD=contentaudit DB_NAME=contentaudit DB_PORT=5432 node --test --test-force-exit \"**/*.spec.ts\"",
     "test:watch": "node --test --watch \"**/*.spec.ts\"",
     "migrate": "prisma migrate deploy",
     "postinstall": "prisma generate",
-    "rds-tunnel": "sh -c 'ssm ssh -t content-audit,CODE --profile capi --tunnel 7658:$(node ./scripts/get-rds-proxy-endpoint.ts --stage CODE):5432' && echo \"\npassword:\n\" && node ./scripts/generate-rds-password.ts",
-    "stop-rds-tunnel": "kill $(lsof -ti :7658)"
+    "write-local-env": "node ./scripts/write-db-env.ts --stage LOCAL",
+    "rds-tunnel": "sh -c 'ssm ssh -t content-audit,CODE --profile capi --tunnel 7658:$(node ./scripts/get-rds-proxy-endpoint.ts --stage CODE):5432' && echo \"\npassword:\n\" && node ./scripts/write-db-env.ts --stage CODE",
+    "stop-rds-tunnel": "node ./scripts/write-db-env.ts --stage LOCAL && kill $(lsof -ti :7658)"
   },
   "keywords": [],
   "author": "",

@@ -119,4 +119,5 @@ jobs:
             cdk.out:
               - artifacts/cdk.out/ContentAudit-euwest-1-CODE.template.json
               - artifacts/cdk.out/ContentAudit-euwest-1-PROD.template.json
+            content-audit:
               - cdk/startup.sh

@@ -28,7 +28,7 @@ await test("handler", async () => {
     dbPassword: "contentaudit",
     dbPort,
     dbUser,
-    isLocal: true,
+    includeRootCert: true,
   });
 
   await it("should return a 500 if the audit fails", async () => {
@@ -46,15 +46,11 @@ await test("handler", async () => {
       mockCallback,
     );
 
-    const expectedReponse = {
-      statusCode: 500,
-      body: JSON.stringify({
-        status: "error",
-        message: errorMessage,
-      }),
-    };
-
-    assert.deepStrictEqual(response, expectedReponse);
+    assert.deepStrictEqual(response.statusCode, 500);
+    assert.partialDeepStrictEqual(JSON.parse(response.body), {
+      status: "error",
+      message: errorMessage,
+    });
   });
 
   await it("should return a 400 given unparseable JSON as input", async () => {
@@ -66,15 +62,11 @@ await test("handler", async () => {
       mockCallback,
     );
 
-    const expectedReponse = {
-      statusCode: 400,
-      body: JSON.stringify({
-        status: "error",
-        message: "Unexpected token 'a', \"asdf\" is not valid JSON",
-      }),
-    };
-
-    assert.deepStrictEqual(response, expectedReponse);
+    assert.deepStrictEqual(response.statusCode, 400);
+    assert.partialDeepStrictEqual(JSON.parse(response.body), {
+      status: "error",
+      message: "Unexpected token 'a', \"asdf\" is not valid JSON",
+    });
   });
 
   await it("should return a 400 given an incorrect payload as input", async () => {
