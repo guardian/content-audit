@@ -248,9 +248,7 @@ export class ContentAudit extends GuStack {
 					DB_USER: dbUser,
 					DB_HOST: dbHostname,
 					DB_NAME: databaseName,
-					DB_PORT: dbPort.toString(),
-					DOCKER_OPTS:
-						'--dns 10.0.0.2 -H tcp://127.0.0.1:4243 -H unix:///var/run/docker.sock -g /mnt/docker',
+					DB_PORT: dbPort.toString()
 				},
 			},
 		);

@@ -1194,7 +1194,6 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
             "DB_NAME": "contentaudit",
             "DB_PORT": "5432",
             "DB_USER": "root",
-            "DOCKER_OPTS": "--dns 10.0.0.2 -H tcp://127.0.0.1:4243 -H unix:///var/run/docker.sock -g /mnt/docker",
           },
         },
         "FunctionName": "playwright-runner",
