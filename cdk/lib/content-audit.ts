@@ -41,6 +41,7 @@ import {
 	PostgresEngineVersion,
 	StorageType,
 } from 'aws-cdk-lib/aws-rds';
+import { EcrArnParamPath, EcrNameParamPath } from './content-audit-infra';
 
 interface StackProps extends GuStackProps {
 	buildNumber: string;
@@ -67,13 +68,13 @@ export class ContentAudit extends GuStack {
 
 		const ecrRepoArn = new GuParameter(this, 'EcrArnParam', {
 			fromSSM: true,
-			default: `/INFRA/${this.stack}/${this.app}/ecr-arn`,
+			default: EcrArnParamPath,
 			description: 'The ECR repository ARN for the stack',
 		});
 
 		const ecrRepoName = new GuParameter(this, 'EcrNameParam', {
 			fromSSM: true,
-			default: `/INFRA/${this.stack}/${this.app}/ecr-name`,
+			default: EcrNameParamPath,
 			description: 'The ECR repository name for the stack',
 		});
 
