@@ -73,7 +73,9 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const Audit_page_runScalarFieldEnum = {
   id: 'id',
   created_at: 'created_at',
-  url: 'url'
+  url: 'url',
+  status: 'status',
+  error: 'error'
 } as const
 
 export type Audit_page_runScalarFieldEnum = (typeof Audit_page_runScalarFieldEnum)[keyof typeof Audit_page_runScalarFieldEnum]

@@ -20,7 +20,7 @@ const config: runtime.GetPrismaClientConfig = {
   "clientVersion": "7.2.0",
   "engineVersion": "0c8ef2ce45c83248ab3df073180d5eda9e8be7a3",
   "activeProvider": "postgresql",
-  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"client\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\n/// Represents an audit run against a particular page\nmodel audit_page_run {\n  id         Int       @id @default(autoincrement())\n  created_at DateTime? @default(now()) @db.Date\n  /// The URL of the page that ran\n  url        String?   @db.VarChar(2048)\n}\n",
+  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"client\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\n/// Represents an audit run against a particular page\nmodel audit_page_run {\n  id         Int       @id @default(autoincrement())\n  created_at DateTime? @default(now()) @db.Date\n  /// The URL of the page that ran\n  url        String    @db.VarChar(2048)\n  status     RunStatus @default(IN_FLIGHT)\n  /// Relevant error text, if the run failed\n  error      String?   @db.Text()\n}\n\nenum RunStatus {\n  IN_FLIGHT\n  COMPLETED\n  FAILED\n}\n",
   "runtimeDataModel": {
     "models": {},
     "enums": {},
@@ -28,7 +28,7 @@ const config: runtime.GetPrismaClientConfig = {
   }
 }
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"audit_page_run\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"audit_page_run\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"created_at\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"url\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"status\",\"kind\":\"enum\",\"type\":\"RunStatus\"},{\"name\":\"error\",\"kind\":\"scalar\",\"type\":\"String\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 
 async function decodeBase64AsWasm(wasmBase64: string): Promise<WebAssembly.Module> {
   const { Buffer } = await import('node:buffer')
