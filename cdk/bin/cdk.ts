@@ -2,6 +2,7 @@ import 'source-map-support/register';
 import { GuRoot } from '@guardian/cdk/lib/constructs/root';
 import { ContentAudit } from '../lib/content-audit';
 import { ContentAuditInfra } from '../lib/content-audit-infra';
+import { App } from 'aws-cdk-lib';
 
 const app = new GuRoot();
 
@@ -27,7 +28,9 @@ new ContentAudit(app, 'ContentAudit-euwest-1-PROD', {
 	env: { region: 'eu-west-1' },
 });
 
-new ContentAuditInfra(app, 'ContentAuditInfra-euwest-1-INFRA', {
+const infraApp = new App();
+
+new ContentAuditInfra(infraApp, 'ContentAuditInfra-euwest-1-INFRA', {
 	app: 'content-audit-infra',
 	stack: 'content-api',
 	stage: 'INFRA',
