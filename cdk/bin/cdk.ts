@@ -11,13 +11,6 @@ if (!buildNumber) {
 	throw new Error('You must provide a build number when creating the stack');
 }
 
-new ContentAuditInfra(app, 'ContentAuditInfra-euwest-1-INFRA', {
-	app: 'content-audit',
-	stack: 'content-api',
-	stage: 'INFRA',
-	env: { region: 'eu-west-1' },
-});
-
 new ContentAudit(app, 'ContentAudit-euwest-1-CODE', {
 	app: 'content-audit',
 	stack: 'content-api',
@@ -31,5 +24,12 @@ new ContentAudit(app, 'ContentAudit-euwest-1-PROD', {
 	stack: 'content-api',
 	stage: 'PROD',
 	buildNumber,
+	env: { region: 'eu-west-1' },
+});
+
+new ContentAuditInfra(app, 'ContentAuditInfra-euwest-1-INFRA', {
+	app: 'content-audit-infra',
+	stack: 'content-api',
+	stage: 'INFRA',
 	env: { region: 'eu-west-1' },
 });
