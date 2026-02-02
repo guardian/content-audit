@@ -1,0 +1,5 @@
+
+> capi-query@1.0.0 types
+> tsc --traceResolution --config ./tsconfig.json
+
+error TS5023: Unknown compiler option '--config'.
