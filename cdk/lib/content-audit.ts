@@ -10,6 +10,7 @@ import {
 } from '@guardian/cdk/lib/constructs/core';
 import { GuSecurityGroup } from '@guardian/cdk/lib/constructs/ec2';
 import { GuDatabaseInstance } from '@guardian/cdk/lib/constructs/rds';
+import { GuLambdaFunction } from '@guardian/cdk/lib/constructs/lambda';
 import { type App, Duration, Fn, RemovalPolicy } from 'aws-cdk-lib';
 import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
 import { GroupMetric, GroupMetrics } from 'aws-cdk-lib/aws-autoscaling';
@@ -27,9 +28,19 @@ import { Repository } from 'aws-cdk-lib/aws-ecr';
 import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import {
 	Architecture,
+	Code,
 	DockerImageCode,
 	DockerImageFunction,
+	Runtime,
 } from 'aws-cdk-lib/aws-lambda';
+import {
+	Choice,
+	Condition,
+	DefinitionBody,
+	StateMachine,
+	Succeed,
+} from 'aws-cdk-lib/aws-stepfunctions';
+import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import {
 	CfnDBProxy,
 	Credentials,
@@ -60,6 +71,12 @@ export class ContentAudit extends GuStack {
 			description:
 				'The docker image tag to use. Useful when cloudforming manually - in CI, this is set by BUILD_NUMBER',
 			default: props.buildNumber,
+		});
+
+		const capiApiKey = new GuParameter(this, 'CapiApiKey', {
+			fromSSM: true,
+			default: `${this.stage}/${this.stack}/${this.app}/capi/key`,
+			description: 'Main account VPC',
 		});
 
 		const ecrRepoArn = new GuParameter(this, 'EcrArnParam', {
@@ -131,6 +148,8 @@ export class ContentAudit extends GuStack {
 
 		const tagOrDigest = process.env['BUILD_NUMBER'] ?? imageTag.valueAsString;
 
+		// Database
+
 		const dbPort = 5432;
 		const dbUser = 'root';
 		const dbSecurityGroupName = `ContentAuditDatabaseSecurityGroup${this.stage}`;
@@ -193,7 +212,9 @@ export class ContentAudit extends GuStack {
 
 		const dbHostname = dbProxy.endpoint;
 
-		const pageRunnerFunction = new DockerImageFunction(
+		// Page runner lambda
+
+		const pageRunnerLambda = new DockerImageFunction(
 			this,
 			'PageRunnerLambda',
 			{
@@ -213,10 +234,52 @@ export class ContentAudit extends GuStack {
 			},
 		);
 
-		dbProxy.grantConnect(pageRunnerFunction);
+		dbProxy.grantConnect(pageRunnerLambda);
+
+		// CAPI Query Lambda - fetches the next content page
+		const capiQueryLambda = new GuLambdaFunction(this, 'CapiQueryLambda', {
+			app,
+			functionName: 'capi-query',
+			fileName: 'index.js',
+			runtime: Runtime.NODEJS_22_X,
+			handler: 'index.handler',
+			memorySize: 512,
+			timeout: Duration.seconds(30),
+			vpc,
+			environment: {
+				CAPI_API_KEY: capiApiKey.valueAsString
+			},
+		});
+
+		// Step Function
+
+		const getNextContentPage = new LambdaInvoke(this, 'GetNextContentPage', {
+			lambdaFunction: capiQueryLambda,
+			outputPath: '$.Payload',
+		});
+
+		const auditPiece = new LambdaInvoke(this, 'AuditPiece', {
+			lambdaFunction: pageRunnerLambda,
+			outputPath: '$.Payload',
+		});
+
+		const done = new Succeed(this, 'Done');
+
+		const morePages = new Choice(this, 'MorePages')
+			.when(Condition.booleanEquals('$.hasMorePages', true), getNextContentPage)
+			.otherwise(done);
+
+		const definition = getNextContentPage.next(auditPiece).next(morePages);
+
+		const stateMachine = new StateMachine(this, 'ContentAuditStateMachine', {
+			stateMachineName: `${app}-state-machine-${this.stage}`,
+			definitionBody: DefinitionBody.fromChainable(definition),
+		});
+
+		// API
 
 		const api = new LambdaRestApi(this, 'PageRunnerApi', {
-			handler: pageRunnerFunction,
+			handler: pageRunnerLambda,
 			apiKeySourceType: ApiKeySourceType.HEADER,
 			defaultMethodOptions: {
 				apiKeyRequired: true,
@@ -230,6 +293,8 @@ export class ContentAudit extends GuStack {
 		usagePlan.addApiStage({
 			stage: api.deploymentStage,
 		});
+
+		// Database bastion
 
 		const dbBastionASGName = `${app}-bastion-${this.stage}`;
 		const dbBastionASG = new GuAutoScalingGroup(this, 'DatabaseBastionASG', {
