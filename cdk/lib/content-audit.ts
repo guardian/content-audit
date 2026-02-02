@@ -9,8 +9,8 @@ import {
 	GuStack,
 } from '@guardian/cdk/lib/constructs/core';
 import { GuSecurityGroup } from '@guardian/cdk/lib/constructs/ec2';
-import { GuDatabaseInstance } from '@guardian/cdk/lib/constructs/rds';
 import { GuLambdaFunction } from '@guardian/cdk/lib/constructs/lambda';
+import { GuDatabaseInstance } from '@guardian/cdk/lib/constructs/rds';
 import { type App, Duration, Fn, RemovalPolicy } from 'aws-cdk-lib';
 import { ApiKeySourceType, LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
 import { GroupMetric, GroupMetrics } from 'aws-cdk-lib/aws-autoscaling';
@@ -28,26 +28,27 @@ import { Repository } from 'aws-cdk-lib/aws-ecr';
 import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import {
 	Architecture,
-	Code,
 	DockerImageCode,
 	DockerImageFunction,
 	Runtime,
 } from 'aws-cdk-lib/aws-lambda';
+import type { CfnDBProxy } from 'aws-cdk-lib/aws-rds';
 import {
-	Choice,
-	Condition,
-	DefinitionBody,
-	StateMachine,
-	Succeed,
-} from 'aws-cdk-lib/aws-stepfunctions';
-import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
-import {
-	CfnDBProxy,
 	Credentials,
 	DatabaseInstanceEngine,
 	PostgresEngineVersion,
 	StorageType,
 } from 'aws-cdk-lib/aws-rds';
+import {
+	Choice,
+	Condition,
+	DefinitionBody,
+	JsonPath,
+	StateMachine,
+	Succeed,
+} from 'aws-cdk-lib/aws-stepfunctions';
+import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
+import { Map } from 'aws-cdk-lib/aws-stepfunctions';
 import { EcrArnParamPath, EcrNameParamPath } from './content-audit-infra';
 
 interface StackProps extends GuStackProps {
@@ -76,7 +77,13 @@ export class ContentAudit extends GuStack {
 		const capiApiKey = new GuParameter(this, 'CapiApiKey', {
 			fromSSM: true,
 			default: `${this.stage}/${this.stack}/${this.app}/capi/key`,
-			description: 'Main account VPC',
+			description: 'CAPI API Key',
+		});
+
+		const capiUrl = new GuParameter(this, 'CapiUrl', {
+			fromSSM: true,
+			default: `${this.stage}/${this.stack}/${this.app}/capi/url`,
+			description: 'CAPI URL',
 		});
 
 		const ecrRepoArn = new GuParameter(this, 'EcrArnParam', {
@@ -146,7 +153,9 @@ export class ContentAudit extends GuStack {
 			}),
 		);
 
-		const tagOrDigest = process.env['BUILD_NUMBER'] ?? imageTag.valueAsString;
+		const tagOrDigest =
+			(process.env['BUILD_NUMBER'] as string | undefined) ??
+			imageTag.valueAsString;
 
 		// Database
 
@@ -212,42 +221,39 @@ export class ContentAudit extends GuStack {
 
 		const dbHostname = dbProxy.endpoint;
 
-		// Page runner lambda
+		// Page runner lambda - runs the webpage at the given url
 
-		const pageRunnerLambda = new DockerImageFunction(
-			this,
-			'PageRunnerLambda',
-			{
-				code: DockerImageCode.fromEcr(ecrRepo, { tagOrDigest }),
-				functionName: 'page-runner',
-				memorySize: 4096,
-				timeout: Duration.seconds(60),
-				architecture: Architecture.ARM_64,
-				vpc,
-				securityGroups: [dbAccessSecurityGroup],
-				environment: {
-					DB_USER: dbUser,
-					DB_HOST: dbHostname,
-					DB_NAME: databaseName,
-					DB_PORT: dbPort.toString(),
-				},
+		const pageRunnerLambda = new DockerImageFunction(this, 'PageRunnerLambda', {
+			code: DockerImageCode.fromEcr(ecrRepo, { tagOrDigest }),
+			functionName: 'page-runner',
+			memorySize: 4096,
+			timeout: Duration.seconds(60),
+			architecture: Architecture.ARM_64,
+			vpc,
+			securityGroups: [dbAccessSecurityGroup],
+			environment: {
+				DB_USER: dbUser,
+				DB_HOST: dbHostname,
+				DB_NAME: databaseName,
+				DB_PORT: dbPort.toString(),
 			},
-		);
+		});
 
 		dbProxy.grantConnect(pageRunnerLambda);
 
 		// CAPI Query Lambda - fetches the next content page
+
 		const capiQueryLambda = new GuLambdaFunction(this, 'CapiQueryLambda', {
 			app,
 			functionName: 'capi-query',
 			fileName: 'index.js',
 			runtime: Runtime.NODEJS_22_X,
 			handler: 'index.handler',
-			memorySize: 512,
-			timeout: Duration.seconds(30),
+			memorySize: 128,
 			vpc,
 			environment: {
-				CAPI_API_KEY: capiApiKey.valueAsString
+				CAPI_API_KEY: capiApiKey.valueAsString,
+				CAPI_URL: capiUrl.valueAsString,
 			},
 		});
 
@@ -263,15 +269,26 @@ export class ContentAudit extends GuStack {
 			outputPath: '$.Payload',
 		});
 
+		const mapAudit = new Map(this, 'ProcessItemsInParallel', {
+			maxConcurrency: 10,
+			itemsPath: JsonPath.stringAt('$.items'),
+			parameters: {
+				'id.$': '$$.Map.Item.Value.id',
+				'data.$': '$$.Map.Item.Value.data',
+			},
+		});
+
+		mapAudit.itemProcessor(auditPiece);
+
 		const done = new Succeed(this, 'Done');
 
 		const morePages = new Choice(this, 'MorePages')
 			.when(Condition.booleanEquals('$.hasMorePages', true), getNextContentPage)
 			.otherwise(done);
 
-		const definition = getNextContentPage.next(auditPiece).next(morePages);
+		const definition = getNextContentPage.next(mapAudit).next(morePages);
 
-		const stateMachine = new StateMachine(this, 'ContentAuditStateMachine', {
+		new StateMachine(this, 'ContentAuditStateMachine', {
 			stateMachineName: `${app}-state-machine-${this.stage}`,
 			definitionBody: DefinitionBody.fromChainable(definition),
 		});
