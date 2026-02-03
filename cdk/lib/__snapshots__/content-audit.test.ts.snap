@@ -125,11 +125,11 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
           "S3Bucket": {
             "Ref": "DistributionBucketName",
           },
-          "S3Key": "content-api/TEST/content-audit/index.js",
+          "S3Key": "content-api/TEST/capi-query/index.js",
         },
         "Environment": {
           "Variables": {
-            "APP": "content-audit",
+            "APP": "capi-query",
             "CAPI_API_KEY": {
               "Ref": "CapiApiKey",
             },
@@ -156,7 +156,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "Tags": [
           {
             "Key": "App",
-            "Value": "content-audit",
+            "Value": "capi-query",
           },
           {
             "Key": "gu:cdk:version",
@@ -205,7 +205,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "Tags": [
           {
             "Key": "App",
-            "Value": "content-audit",
+            "Value": "capi-query",
           },
           {
             "Key": "gu:cdk:version",
@@ -269,7 +269,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
                       {
                         "Ref": "DistributionBucketName",
                       },
-                      "/content-api/TEST/content-audit/index.js",
+                      "/content-api/TEST/capi-query/index.js",
                     ],
                   ],
                 },
@@ -290,7 +290,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
                     {
                       "Ref": "AWS::AccountId",
                     },
-                    ":parameter/TEST/content-api/content-audit",
+                    ":parameter/TEST/content-api/capi-query",
                   ],
                 ],
               },
@@ -313,7 +313,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
                     {
                       "Ref": "AWS::AccountId",
                     },
-                    ":parameter/TEST/content-api/content-audit/*",
+                    ":parameter/TEST/content-api/capi-query/*",
                   ],
                 ],
               },
@@ -373,7 +373,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
         "Tags": [
           {
             "Key": "App",
-            "Value": "content-audit",
+            "Value": "capi-query",
           },
           {
             "Key": "gu:cdk:version",

@@ -244,7 +244,7 @@ export class ContentAudit extends GuStack {
 		// CAPI Query Lambda - fetches the next content page
 
 		const capiQueryLambda = new GuLambdaFunction(this, 'CapiQueryLambda', {
-			app,
+			app: 'capi-query',
 			functionName: 'capi-query',
 			fileName: 'index.js',
 			runtime: Runtime.NODEJS_22_X,
