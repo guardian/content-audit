@@ -1,5 +1,5 @@
-import type { SearchResponse } from "@guardian/content-api-models/v1/searchResponse.ts";
-import { SearchResponseSerde } from "@guardian/content-api-models/v1/searchResponse.ts";
+import type { SearchResponse } from "@guardian/content-api-models/v1/searchResponse.js";
+import { SearchResponseSerde } from "@guardian/content-api-models/v1/searchResponse.js";
 import type { TProtocol } from "thrift";
 import { TCompactProtocol, TFramedTransport } from "thrift";
 
