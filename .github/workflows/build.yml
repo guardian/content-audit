@@ -98,6 +98,8 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "npm"
           cache-dependency-path: projects/capi-query/package-lock.json
+      - run: npm ci
+        working-directory: projects/capi-query
       - run: npm test
         working-directory: projects/capi-query
       - run: npm run build
