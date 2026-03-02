@@ -18,15 +18,15 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@aws-sdk/client-rds": "^3.966.0",
-    "@playwright/test": "^1.51.1",
     "@types/aws-lambda": "^8.10.149",
     "@types/node": "^22.13.10",
     "prisma": "^7.2.0",
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "@aws-sdk/rds-signer": "^3.936.0",
+    "@aws-sdk/client-rds": "^3.1000.0",
+    "@aws-sdk/rds-signer": "^3.1000.0",
+    "@playwright/test": "^1.51.1",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "aws-lambda": "^1.0.7",
