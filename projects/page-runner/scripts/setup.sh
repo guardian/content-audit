@@ -28,6 +28,6 @@ npm ci
 
 echo "[Setup]: migrating DB"
 
-npm run migrate
+npm run migrate:create
 
 echo "[Setup]: complete"
