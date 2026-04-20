@@ -520,7 +520,9 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const Audit_page_runScalarFieldEnum = {
   id: 'id',
   created_at: 'created_at',
-  url: 'url'
+  url: 'url',
+  status: 'status',
+  error: 'error'
 } as const
 
 export type Audit_page_runScalarFieldEnum = (typeof Audit_page_runScalarFieldEnum)[keyof typeof Audit_page_runScalarFieldEnum]
@@ -595,6 +597,20 @@ export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'String[]'
  */
 export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+/**
+ * Reference to a field of type 'RunStatus'
+ */
+export type EnumRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RunStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'RunStatus[]'
+ */
+export type ListEnumRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RunStatus[]'>
     
 
 

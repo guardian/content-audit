@@ -38,18 +38,24 @@ export type Audit_page_runMinAggregateOutputType = {
   id: number | null
   created_at: Date | null
   url: string | null
+  status: $Enums.RunStatus | null
+  error: string | null
 }
 
 export type Audit_page_runMaxAggregateOutputType = {
   id: number | null
   created_at: Date | null
   url: string | null
+  status: $Enums.RunStatus | null
+  error: string | null
 }
 
 export type Audit_page_runCountAggregateOutputType = {
   id: number
   created_at: number
   url: number
+  status: number
+  error: number
   _all: number
 }
 
@@ -66,18 +72,24 @@ export type Audit_page_runMinAggregateInputType = {
   id?: true
   created_at?: true
   url?: true
+  status?: true
+  error?: true
 }
 
 export type Audit_page_runMaxAggregateInputType = {
   id?: true
   created_at?: true
   url?: true
+  status?: true
+  error?: true
 }
 
 export type Audit_page_runCountAggregateInputType = {
   id?: true
   created_at?: true
   url?: true
+  status?: true
+  error?: true
   _all?: true
 }
 
@@ -170,7 +182,9 @@ export type audit_page_runGroupByArgs<ExtArgs extends runtime.Types.Extensions.I
 export type Audit_page_runGroupByOutputType = {
   id: number
   created_at: Date | null
-  url: string | null
+  url: string
+  status: $Enums.RunStatus
+  error: string | null
   _count: Audit_page_runCountAggregateOutputType | null
   _avg: Audit_page_runAvgAggregateOutputType | null
   _sum: Audit_page_runSumAggregateOutputType | null
@@ -199,13 +213,17 @@ export type audit_page_runWhereInput = {
   NOT?: Prisma.audit_page_runWhereInput | Prisma.audit_page_runWhereInput[]
   id?: Prisma.IntFilter<"audit_page_run"> | number
   created_at?: Prisma.DateTimeNullableFilter<"audit_page_run"> | Date | string | null
-  url?: Prisma.StringNullableFilter<"audit_page_run"> | string | null
+  url?: Prisma.StringFilter<"audit_page_run"> | string
+  status?: Prisma.EnumRunStatusFilter<"audit_page_run"> | $Enums.RunStatus
+  error?: Prisma.StringNullableFilter<"audit_page_run"> | string | null
 }
 
 export type audit_page_runOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   created_at?: Prisma.SortOrderInput | Prisma.SortOrder
-  url?: Prisma.SortOrderInput | Prisma.SortOrder
+  url?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  error?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type audit_page_runWhereUniqueInput = Prisma.AtLeast<{
@@ -214,13 +232,17 @@ export type audit_page_runWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.audit_page_runWhereInput[]
   NOT?: Prisma.audit_page_runWhereInput | Prisma.audit_page_runWhereInput[]
   created_at?: Prisma.DateTimeNullableFilter<"audit_page_run"> | Date | string | null
-  url?: Prisma.StringNullableFilter<"audit_page_run"> | string | null
+  url?: Prisma.StringFilter<"audit_page_run"> | string
+  status?: Prisma.EnumRunStatusFilter<"audit_page_run"> | $Enums.RunStatus
+  error?: Prisma.StringNullableFilter<"audit_page_run"> | string | null
 }, "id">
 
 export type audit_page_runOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   created_at?: Prisma.SortOrderInput | Prisma.SortOrder
-  url?: Prisma.SortOrderInput | Prisma.SortOrder
+  url?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  error?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.audit_page_runCountOrderByAggregateInput
   _avg?: Prisma.audit_page_runAvgOrderByAggregateInput
   _max?: Prisma.audit_page_runMaxOrderByAggregateInput
@@ -234,52 +256,70 @@ export type audit_page_runScalarWhereWithAggregatesInput = {
   NOT?: Prisma.audit_page_runScalarWhereWithAggregatesInput | Prisma.audit_page_runScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"audit_page_run"> | number
   created_at?: Prisma.DateTimeNullableWithAggregatesFilter<"audit_page_run"> | Date | string | null
-  url?: Prisma.StringNullableWithAggregatesFilter<"audit_page_run"> | string | null
+  url?: Prisma.StringWithAggregatesFilter<"audit_page_run"> | string
+  status?: Prisma.EnumRunStatusWithAggregatesFilter<"audit_page_run"> | $Enums.RunStatus
+  error?: Prisma.StringNullableWithAggregatesFilter<"audit_page_run"> | string | null
 }
 
 export type audit_page_runCreateInput = {
   created_at?: Date | string | null
-  url?: string | null
+  url: string
+  status?: $Enums.RunStatus
+  error?: string | null
 }
 
 export type audit_page_runUncheckedCreateInput = {
   id?: number
   created_at?: Date | string | null
-  url?: string | null
+  url: string
+  status?: $Enums.RunStatus
+  error?: string | null
 }
 
 export type audit_page_runUpdateInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumRunStatusFieldUpdateOperationsInput | $Enums.RunStatus
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type audit_page_runUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumRunStatusFieldUpdateOperationsInput | $Enums.RunStatus
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type audit_page_runCreateManyInput = {
   id?: number
   created_at?: Date | string | null
-  url?: string | null
+  url: string
+  status?: $Enums.RunStatus
+  error?: string | null
 }
 
 export type audit_page_runUpdateManyMutationInput = {
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumRunStatusFieldUpdateOperationsInput | $Enums.RunStatus
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type audit_page_runUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   created_at?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  url?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumRunStatusFieldUpdateOperationsInput | $Enums.RunStatus
+  error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type audit_page_runCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  error?: Prisma.SortOrder
 }
 
 export type audit_page_runAvgOrderByAggregateInput = {
@@ -290,12 +330,16 @@ export type audit_page_runMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  error?: Prisma.SortOrder
 }
 
 export type audit_page_runMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   created_at?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  error?: Prisma.SortOrder
 }
 
 export type audit_page_runSumOrderByAggregateInput = {
@@ -304,6 +348,14 @@ export type audit_page_runSumOrderByAggregateInput = {
 
 export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
+}
+
+export type StringFieldUpdateOperationsInput = {
+  set?: string
+}
+
+export type EnumRunStatusFieldUpdateOperationsInput = {
+  set?: $Enums.RunStatus
 }
 
 export type NullableStringFieldUpdateOperationsInput = {
@@ -324,27 +376,35 @@ export type audit_page_runSelect<ExtArgs extends runtime.Types.Extensions.Intern
   id?: boolean
   created_at?: boolean
   url?: boolean
+  status?: boolean
+  error?: boolean
 }, ExtArgs["result"]["audit_page_run"]>
 
 export type audit_page_runSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   created_at?: boolean
   url?: boolean
+  status?: boolean
+  error?: boolean
 }, ExtArgs["result"]["audit_page_run"]>
 
 export type audit_page_runSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   created_at?: boolean
   url?: boolean
+  status?: boolean
+  error?: boolean
 }, ExtArgs["result"]["audit_page_run"]>
 
 export type audit_page_runSelectScalar = {
   id?: boolean
   created_at?: boolean
   url?: boolean
+  status?: boolean
+  error?: boolean
 }
 
-export type audit_page_runOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "created_at" | "url", ExtArgs["result"]["audit_page_run"]>
+export type audit_page_runOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "created_at" | "url" | "status" | "error", ExtArgs["result"]["audit_page_run"]>
 
 export type $audit_page_runPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "audit_page_run"
@@ -355,7 +415,12 @@ export type $audit_page_runPayload<ExtArgs extends runtime.Types.Extensions.Inte
     /**
      * The URL of the page that ran
      */
-    url: string | null
+    url: string
+    status: $Enums.RunStatus
+    /**
+     * Relevant error text, if the run failed
+     */
+    error: string | null
   }, ExtArgs["result"]["audit_page_run"]>
   composites: {}
 }
@@ -782,6 +847,8 @@ export interface audit_page_runFieldRefs {
   readonly id: Prisma.FieldRef<"audit_page_run", 'Int'>
   readonly created_at: Prisma.FieldRef<"audit_page_run", 'DateTime'>
   readonly url: Prisma.FieldRef<"audit_page_run", 'String'>
+  readonly status: Prisma.FieldRef<"audit_page_run", 'RunStatus'>
+  readonly error: Prisma.FieldRef<"audit_page_run", 'String'>
 }
     
 
@@ -976,7 +1043,7 @@ export type audit_page_runCreateArgs<ExtArgs extends runtime.Types.Extensions.In
   /**
    * The data needed to create a audit_page_run.
    */
-  data?: Prisma.XOR<Prisma.audit_page_runCreateInput, Prisma.audit_page_runUncheckedCreateInput>
+  data: Prisma.XOR<Prisma.audit_page_runCreateInput, Prisma.audit_page_runUncheckedCreateInput>
 }
 
 /**

@@ -16,9 +16,6 @@ jobs:
       working-directory: projects/page-runner
       run: |
         ./scripts/setup.sh
-        docker compose up -d
-        npm ci
-        npm run migrate
         npm test
 
   create-and-push-page-runner-image:

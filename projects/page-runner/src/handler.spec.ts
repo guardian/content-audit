@@ -1,4 +1,4 @@
-import test, { it, mock } from "node:test";
+import test, { after, afterEach, it, mock } from "node:test";
 import { createHandler } from "./handler.ts";
 import type { APIGatewayProxyEvent, Context } from "aws-lambda";
 import assert from "node:assert";
@@ -31,6 +31,14 @@ await test("handler", async () => {
     includeRootCert: true,
   });
 
+  afterEach(async () => {
+    await prismaClient.audit_page_run.deleteMany();
+  });
+
+  after(async () => {
+    await prismaClient.$disconnect();
+  });
+
   await it("should return a 500 if the audit fails", async () => {
     const errorMessage = "Audit failed";
     const handler = createHandler(
@@ -51,6 +59,10 @@ await test("handler", async () => {
       status: "error",
       message: errorMessage,
     });
+
+    const [{ url, status }] = await prismaClient.audit_page_run.findMany();
+    assert.equal(url, "example.com");
+    assert.equal(status, "FAILED");
   });
 
   await it("should return a 400 given unparseable JSON as input", async () => {
@@ -112,5 +124,9 @@ await test("handler", async () => {
     };
 
     assert.deepStrictEqual(response, expectedReponse);
+
+    const [{ url, status }] = await prismaClient.audit_page_run.findMany();
+    assert.equal(url, "example.com");
+    assert.equal(status, "COMPLETED");
   });
 });
