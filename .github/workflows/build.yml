@@ -107,7 +107,8 @@ jobs:
       - name: Store the built artifacts
         uses: actions/upload-artifact@v4
         with:
-          path: capi-query
+          name: capi-query
+          path: projects/capi-query/dist
           retention-days: 5
 
   upload-to-riffraff:
