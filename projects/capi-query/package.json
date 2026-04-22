@@ -1,0 +1,31 @@
+{
+  "name": "capi-query",
+  "version": "1.0.0",
+  "description": "Lambda to query CAPI with the given query string, and output the results",
+  "type": "module",
+  "scripts": {
+    "test": "node --test --experimental-strip-types 'src/**/*.spec.ts'",
+    "build": "esbuild ./src/index.ts --bundle --outdir=./dist --platform=node"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guardian/content-audit.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/guardian/content-audit/issues"
+  },
+  "homepage": "https://github.com/guardian/content-audit#readme",
+  "dependencies": {
+    "@guardian/content-api-models": "^37.0.0",
+    "aws-lambda": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.160",
+    "@types/node": "^25.2.0",
+    "esbuild": "^0.27.2",
+    "typescript": "^5.9.3",
+    "undici": "^7.25.0"
+  }
+}

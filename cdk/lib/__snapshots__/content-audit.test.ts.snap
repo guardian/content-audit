@@ -10,10 +10,13 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "GuParameter",
       "GuParameter",
       "GuParameter",
+      "GuParameter",
+      "GuParameter",
       "GuSecurityGroup",
       "GuDatabaseInstance",
-      "GuAmiParameter",
       "GuDistributionBucketParameter",
+      "GuLambdaFunction",
+      "GuAmiParameter",
       "GuInstanceRole",
       "GuSsmSshPolicy",
       "GuDescribeEC2Policy",
@@ -60,6 +63,16 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       "Description": "Amazon Machine Image ID for the app content-audit. Use this in conjunction with AMIgo to keep AMIs up to date.",
       "Type": "AWS::EC2::Image::Id",
     },
+    "CapiApiKey": {
+      "Default": "TEST/content-api/content-audit/capi/key",
+      "Description": "CAPI API Key",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "CapiUrl": {
+      "Default": "TEST/content-api/content-audit/capi/url",
+      "Description": "CAPI URL",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
     "DistributionBucketName": {
       "Default": "/account/services/artifact.bucket",
       "Description": "SSM parameter containing the S3 bucket name holding distribution artifacts",
@@ -102,6 +115,286 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
     },
   },
   "Resources": {
+    "CapiQueryLambda1901B709": {
+      "DependsOn": [
+        "CapiQueryLambdaServiceRoleDefaultPolicy2537C5DB",
+        "CapiQueryLambdaServiceRoleF169B1B6",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "DistributionBucketName",
+          },
+          "S3Key": "content-api/TEST/capi-query/index.js",
+        },
+        "Environment": {
+          "Variables": {
+            "APP": "capi-query",
+            "CAPI_API_KEY": {
+              "Ref": "CapiApiKey",
+            },
+            "CAPI_URL": {
+              "Ref": "CapiUrl",
+            },
+            "STACK": "content-api",
+            "STAGE": "TEST",
+          },
+        },
+        "FunctionName": "capi-query",
+        "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogFormat": "JSON",
+        },
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "CapiQueryLambdaServiceRoleF169B1B6",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "capi-query",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "Timeout": 30,
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Fn::GetAtt": [
+                "CapiQueryLambdaSecurityGroup4A4C2F3D",
+                "GroupId",
+              ],
+            },
+          ],
+          "SubnetIds": {
+            "Ref": "PrivateSubnetsParam",
+          },
+        },
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "CapiQueryLambdaSecurityGroup4A4C2F3D": {
+      "Properties": {
+        "GroupDescription": "Automatic security group for Lambda Function ContentAuditCapiQueryLambda80578010",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "capi-query",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "VpcId": {
+          "Ref": "VpcParam",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "CapiQueryLambdaServiceRoleDefaultPolicy2537C5DB": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "DistributionBucketName",
+                      },
+                    ],
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "DistributionBucketName",
+                      },
+                      "/content-api/TEST/capi-query/index.js",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "ssm:GetParametersByPath",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ssm:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":parameter/TEST/content-api/capi-query",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "ssm:GetParameters",
+                "ssm:GetParameter",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ssm:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":parameter/TEST/content-api/capi-query/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "CapiQueryLambdaServiceRoleDefaultPolicy2537C5DB",
+        "Roles": [
+          {
+            "Ref": "CapiQueryLambdaServiceRoleF169B1B6",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "CapiQueryLambdaServiceRoleF169B1B6": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "capi-query",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
     "ContentAuditRuleManagerRDSContentauditSecretA370AA6D2d443b11c74f5499d797acd7bf0b5040": {
       "DeletionPolicy": "Delete",
       "Properties": {
@@ -152,6 +445,183 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
       },
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
+    },
+    "ContentAuditStateMachineE5F8FFF7": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "ContentAuditStateMachineRoleDefaultPolicyC103FDA4",
+        "ContentAuditStateMachineRole4B686A97",
+      ],
+      "Properties": {
+        "DefinitionString": {
+          "Fn::Join": [
+            "",
+            [
+              "{"StartAt":"GetNextContentPage","States":{"GetNextContentPage":{"Next":"ProcessItemsInParallel","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Type":"Task","OutputPath":"$.Payload","Resource":"arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":states:::lambda:invoke","Parameters":{"FunctionName":"",
+              {
+                "Fn::GetAtt": [
+                  "CapiQueryLambda1901B709",
+                  "Arn",
+                ],
+              },
+              "","Payload.$":"$"}},"MorePages":{"Type":"Choice","Choices":[{"Variable":"$.hasMorePages","BooleanEquals":true,"Next":"GetNextContentPage"}],"Default":"Done"},"ProcessItemsInParallel":{"Type":"Map","Next":"MorePages","Parameters":{"id.$":"$$.Map.Item.Value.id","data.$":"$$.Map.Item.Value.data"},"ItemsPath":"$.items","ItemProcessor":{"ProcessorConfig":{"Mode":"INLINE"},"StartAt":"AuditPiece","States":{"AuditPiece":{"End":true,"Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Type":"Task","OutputPath":"$.Payload","Resource":"arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":states:::lambda:invoke","Parameters":{"FunctionName":"",
+              {
+                "Fn::GetAtt": [
+                  "PageRunnerLambdaB666D245",
+                  "Arn",
+                ],
+              },
+              "","Payload.$":"$"}}}},"MaxConcurrency":10},"Done":{"Type":"Succeed"}}}",
+            ],
+          ],
+        },
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "ContentAuditStateMachineRole4B686A97",
+            "Arn",
+          ],
+        },
+        "StateMachineName": "content-audit-state-machine-TEST",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::StepFunctions::StateMachine",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "ContentAuditStateMachineRole4B686A97": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "states.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "content-audit",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/content-audit",
+          },
+          {
+            "Key": "Stack",
+            "Value": "content-api",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ContentAuditStateMachineRoleDefaultPolicyC103FDA4": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "CapiQueryLambda1901B709",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "CapiQueryLambda1901B709",
+                          "Arn",
+                        ],
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "PageRunnerLambdaB666D245",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "PageRunnerLambdaB666D245",
+                          "Arn",
+                        ],
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "ContentAuditStateMachineRoleDefaultPolicyC103FDA4",
+        "Roles": [
+          {
+            "Ref": "ContentAuditStateMachineRole4B686A97",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
     },
     "DBSecurityGroupContentaudit7865E2CC": {
       "Properties": {
