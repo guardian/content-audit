@@ -65,7 +65,7 @@ exports[`The ContentAudit stack matches the snapshot 1`] = `
               "Action": "sts:AssumeRoleWithWebIdentity",
               "Condition": {
                 "StringLike": {
-                  "token.actions.githubusercontent.com:sub": "repo:guardian/content-audit:*",
+                  "token.actions.githubusercontent.com:sub": "repo:guardian@164318/content-audit@959946613:*",
                 },
               },
               "Effect": "Allow",
