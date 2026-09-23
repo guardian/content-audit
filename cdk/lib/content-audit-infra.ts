@@ -39,8 +39,8 @@ export class ContentAuditInfra extends GuStack {
 		// Allow GHA to push new images to ECR
 		new GuGithubActionsRole(this, {
 			condition: {
-				githubOrganisation: 'guardian',
-				repositories: 'content-audit:*',
+				githubOrganisation: 'guardian@164318',
+				repositories: 'content-audit@959946613:*',
 			},
 			policies: [
 				new GuPolicy(this, 'PushUpdatesPolicy', {
